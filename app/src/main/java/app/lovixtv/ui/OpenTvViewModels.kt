@@ -1019,7 +1019,7 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
         kotlinx.coroutines.flow.flow { emit(graph.catalogRepository.series(id)) }
 
     /** An always-empty episode flow, so the detail screen has something before a series loads. */
-    val noEpisodes: kotlinx.coroutines.flow.Flow<List<app.opentv.data.model.Episode>> =
+    val noEpisodes: kotlinx.coroutines.flow.Flow<List<app.lovixtv.data.model.Episode>> =
         kotlinx.coroutines.flow.flowOf(emptyList())
 
     suspend fun movieById(id: Long): Movie? = graph.catalogRepository.movie(id)
@@ -1068,7 +1068,7 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
 
 /**
  * Local viewing profiles. No accounts — just names on this device — with the active one stored in
- * [app.opentv.core.AppSettings] so the whole app agrees on whose watch history is in play.
+ * [app.lovixtv.core.AppSettings] so the whole app agrees on whose watch history is in play.
  */
 class ProfilesViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = ServiceLocator.get(app)

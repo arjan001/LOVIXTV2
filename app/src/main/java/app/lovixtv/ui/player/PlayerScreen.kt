@@ -187,7 +187,7 @@ fun PlayerScreen(
 
     // Picture-in-picture. While the player is on it is "eligible" to shrink to a floating window
     // (pressing Home does it, handled in MainActivity); [inPip] drives hiding all the chrome.
-    val inPip by app.opentv.core.PipState.inPip.collectAsState()
+    val inPip by app.lovixtv.core.PipState.inPip.collectAsState()
     val pipSupported = remember {
         android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
             context.packageManager.hasSystemFeature(
@@ -195,13 +195,13 @@ fun PlayerScreen(
             )
     }
     DisposableEffect(Unit) {
-        app.opentv.core.PipState.eligible = true
+        app.lovixtv.core.PipState.eligible = true
         onDispose {
-            app.opentv.core.PipState.eligible = false
-            app.opentv.core.PipState.isPlaying = false
+            app.lovixtv.core.PipState.eligible = false
+            app.lovixtv.core.PipState.isPlaying = false
         }
     }
-    LaunchedEffect(paused) { app.opentv.core.PipState.isPlaying = !paused }
+    LaunchedEffect(paused) { app.lovixtv.core.PipState.isPlaying = !paused }
     val barFocus = remember { FocusRequester() }
     val panelFocus = remember { FocusRequester() }
     val rootFocus = remember { FocusRequester() }
@@ -575,7 +575,7 @@ fun PlayerScreen(
                     if (pipSupported) {
                         Spacer(Modifier.width(10.dp))
                         BarChip(Icons.Filled.PictureInPictureAlt, stringResource(R.string.player_pop_out), false) {
-                            (context.findActivity() as? app.opentv.MainActivity)?.enterPipNow()
+                            (context.findActivity() as? app.lovixtv.MainActivity)?.enterPipNow()
                             interaction++
                         }
                     }
@@ -701,7 +701,7 @@ private enum class Panel { NONE, SUBTITLES, AUDIO, QUALITY, ASPECT }
 private fun OptionPanel(
     panel: Panel,
     controller: PlayerController,
-    settings: app.opentv.core.AppSettings,
+    settings: app.lovixtv.core.AppSettings,
     tracks: Tracks,
     variants: List<Channel>,
     currentId: Long?,
@@ -777,7 +777,7 @@ private data class Option(val label: String, val selected: Boolean, val onClick:
 @OptIn(UnstableApi::class)
 private fun buildSubtitleOptions(
     controller: PlayerController,
-    settings: app.opentv.core.AppSettings,
+    settings: app.lovixtv.core.AppSettings,
     tracks: Tracks,
     offLabel: String,
     onDone: () -> Unit,

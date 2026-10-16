@@ -256,7 +256,7 @@ class RecordingEngine(
             if (variant.streamUrl.isBlank()) continue
             // Only a provider whose stream URL is directly fetchable is usable for a background
             // capture; a Stalker portal needs a per-play create_link the recorder can't do here.
-            if (sources.byId(variant.sourceId)?.kind == app.opentv.data.model.SourceKind.STALKER) continue
+            if (sources.byId(variant.sourceId)?.kind == app.lovixtv.data.model.SourceKind.STALKER) continue
             return variant
         }
         return channel

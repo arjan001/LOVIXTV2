@@ -108,7 +108,7 @@ object ChannelNameNormalizer {
     /**
      * Folds unicode superscript/modifier decorations to ASCII (`ᴴᴰ` → `HD`, `ᴿᴬᵂ` → `RAW`).
      *
-     * Exposed so other cleaners — notably [app.opentv.data.parser.VodTitleCleaner] for VOD titles —
+     * Exposed so other cleaners — notably [app.lovixtv.data.parser.VodTitleCleaner] for VOD titles —
      * reuse the exact same decoration table instead of maintaining a second, drifting copy. Returns
      * the input untouched (and without allocating) when it carries no such characters.
      */

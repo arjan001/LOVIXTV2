@@ -96,8 +96,8 @@ fun AboutScreen(onBack: () -> Unit) {
                             // Raise the shared update prompt right here — UpdateGate overlays every
                             // screen, so the install dialog appears over About immediately.
                             if (update != null) {
-                                app.opentv.update.UpdateHub.state.value =
-                                    app.opentv.update.UpdateUiState.Available(update)
+                                app.lovixtv.update.UpdateHub.state.value =
+                                    app.lovixtv.update.UpdateUiState.Available(update)
                             }
                             checking = false
                         }

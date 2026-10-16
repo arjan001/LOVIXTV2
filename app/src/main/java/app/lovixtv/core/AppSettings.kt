@@ -369,7 +369,7 @@ class AppSettings private constructor(context: Context) {
     /**
      * When the VOD (movies + series) catalogue was last fetched from the provider, in epoch
      * millis; 0 = never. A provider's 40k-title VOD list is expensive to re-download and
-     * re-write, so [app.opentv.ui.VodViewModel.ensureVodLoaded] uses this to skip the sync on a
+     * re-write, so [app.lovixtv.ui.VodViewModel.ensureVodLoaded] uses this to skip the sync on a
      * warm launch and show the already-stored rows instantly — the fetch only runs on first load
      * or once this goes stale. Not a flow: it is read once when Movies/Shows is first opened.
      */

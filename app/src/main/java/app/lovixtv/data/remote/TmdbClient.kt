@@ -47,7 +47,7 @@ data class TmdbMeta(
  * feature is simply inert until the user opts in — no traffic, nothing to leak.
  *
  * ## Blocking on purpose
- * The methods block on the calling thread. The one caller ([app.opentv.data.repo.CatalogRepository]
+ * The methods block on the calling thread. The one caller ([app.lovixtv.data.repo.CatalogRepository]
  * detail back-fill) is already inside `withContext(Dispatchers.IO)`, matching how the Xtream client
  * is used, so there is no value in another coroutine hop here.
  */

@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 /**
  * Serves this device's watch-history bundle to another OpenTV on the same wifi.
  *
- * Deliberately the same shape as [app.opentv.pairing.PairingServer]: no cloud, a short-lived
+ * Deliberately the same shape as [app.lovixtv.pairing.PairingServer]: no cloud, a short-lived
  * server on the LAN, gated by a six-digit code shown on screen, private-network only, and torn
  * down on a timeout. The bundle is a snapshot taken when sharing starts, served as-is.
  */

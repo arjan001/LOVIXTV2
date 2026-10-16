@@ -298,9 +298,9 @@ class RecordingService : Service() {
         private const val MAX_DEAD_RECONNECTS = 5
         private const val RECONNECT_BACKOFF_MILLIS = 1500L
 
-        private const val ACTION_START = "app.opentv.recording.START"
-        private const val ACTION_STOP = "app.opentv.recording.STOP"
-        private const val ACTION_STOP_ALL = "app.opentv.recording.STOP_ALL"
+        private const val ACTION_START = "app.lovixtv.recording.START"
+        private const val ACTION_STOP = "app.lovixtv.recording.STOP"
+        private const val ACTION_STOP_ALL = "app.lovixtv.recording.STOP_ALL"
         private const val EXTRA_ID = "recordingId"
 
         fun start(context: Context, recordingId: Long) {

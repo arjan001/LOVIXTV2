@@ -21,7 +21,7 @@ import android.os.Build
  */
 object ReminderScheduler {
 
-    const val ACTION_REMIND = "app.opentv.reminder.ALARM_REMIND"
+    const val ACTION_REMIND = "app.lovixtv.reminder.ALARM_REMIND"
     private const val EXTRA_ID = "reminderId"
 
     fun set(context: Context, reminderId: Long, triggerAtMillis: Long) {

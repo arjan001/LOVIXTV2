@@ -19,8 +19,8 @@ import android.os.Build
  */
 object RecordingScheduler {
 
-    const val ACTION_START = "app.opentv.recording.ALARM_START"
-    const val ACTION_WARN = "app.opentv.recording.ALARM_WARN"
+    const val ACTION_START = "app.lovixtv.recording.ALARM_START"
+    const val ACTION_WARN = "app.lovixtv.recording.ALARM_WARN"
     private const val EXTRA_ID = "recordingId"
 
     /** How long before a booking starts to warn the viewer that the screen is about to switch. */

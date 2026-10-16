@@ -44,7 +44,7 @@ import okhttp3.Request
  * kept, the rest dropped. This is what collapses "RAW / RAW" and "HD / HD" duplicates down to
  * a single option, and turns a falsely-multi-quality channel back into a single one.
  */
-internal fun distinctByQuality(channels: List<app.opentv.data.model.Channel>): List<app.opentv.data.model.Channel> {
+internal fun distinctByQuality(channels: List<app.lovixtv.data.model.Channel>): List<app.lovixtv.data.model.Channel> {
     val seen = HashSet<String>()
     return channels.filter { seen.add("${it.qualityRank}|${it.qualityLabel.lowercase()}") }
 }
@@ -201,7 +201,7 @@ class CatalogRepository(
 
     suspend fun episodeByStreamUrl(url: String): Episode? = episodeDao.byStreamUrl(url)
 
-    suspend fun series(id: Long): app.opentv.data.model.Series? = seriesDao.byId(id)
+    suspend fun series(id: Long): app.lovixtv.data.model.Series? = seriesDao.byId(id)
 
     // ---- Netflix-style home feeds ---------------------------------------------------------------
     // All local: derived from the catalogue already on disk plus the active profile's watch history.
@@ -578,7 +578,7 @@ class CatalogRepository(
     suspend fun liveCategories(): List<Category> = categoryDao.allByKind(StreamKind.LIVE)
 
     /** Channel counts per (source, category) — the number shown next to each category. */
-    suspend fun categoryChannelCounts(): List<app.opentv.data.db.CategoryChannelCount> =
+    suspend fun categoryChannelCounts(): List<app.lovixtv.data.db.CategoryChannelCount> =
         channelDao.channelCountsByCategory()
 
     /** One category's channels, hidden included, optionally scoped to a single source. */

@@ -989,8 +989,8 @@ private fun ChannelRow(
 
 @Composable
 private fun LoadingState(isSyncing: Boolean) {
-    val s by app.opentv.core.StatusBus.message.collectAsState()
-    val p by app.opentv.core.StatusBus.progress.collectAsState()
+    val s by app.lovixtv.core.StatusBus.message.collectAsState()
+    val p by app.lovixtv.core.StatusBus.progress.collectAsState()
     val status = s
     val progress = p
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

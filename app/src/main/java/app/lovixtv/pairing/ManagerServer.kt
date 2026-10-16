@@ -453,7 +453,7 @@ class ManagerServer(
     /**
      * The device's address on the LAN.
      *
-     * Deliberately the same enumeration as [PairingServer.lanAddress] and [app.opentv.sync.SyncServer]
+     * Deliberately the same enumeration as [PairingServer.lanAddress] and [app.lovixtv.sync.SyncServer]
      * (duplicated, not shared, to keep the servers independent): asks the interfaces rather than
      * ConnectivityManager, because TV boxes are frequently on ethernet and the wifi-shaped API
      * returns nothing useful when the box is wired.

@@ -131,10 +131,10 @@ fun VodPlayerScreen(
     val controller = remember {
         PlayerController(
             context, scope, graph.streamingHttpClient, subtitlesEnabled = false,
-            smbDataSourceFactory = app.opentv.player.SmbDataSource.Factory(graph.settings),
+            smbDataSourceFactory = app.lovixtv.player.SmbDataSource.Factory(graph.settings),
             // Lets an `optvrec://<id>` recording play while it's still being written.
             growingDataSourceFactory =
-                app.opentv.player.GrowingRecordingDataSource.Factory(context.applicationContext),
+                app.lovixtv.player.GrowingRecordingDataSource.Factory(context.applicationContext),
             liveRecording = growingRec,
         )
     }
@@ -170,7 +170,7 @@ fun VodPlayerScreen(
         val dur = player.duration.takeIf { it > 0 } ?: return
         if (pos > 5_000) {
             graph.playbackPositions.upsert(
-                app.opentv.data.model.PlaybackPosition(
+                app.lovixtv.data.model.PlaybackPosition(
                     profileId = settings.activeProfileId.value,
                     mediaKey = mediaKey,
                     positionMillis = pos,

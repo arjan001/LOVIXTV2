@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * A tiny in-process registry of which recordings are capturing *right now*, and where their bytes
  * are landing. It exists so the player can watch a recording while it is still being written: the
- * [app.opentv.player.GrowingRecordingDataSource] reads the growing file and, when it reaches the
+ * [app.lovixtv.player.GrowingRecordingDataSource] reads the growing file and, when it reaches the
  * current end, asks here whether the capture is still live — if it is, it waits for more bytes
  * rather than declaring the file finished.
  *
