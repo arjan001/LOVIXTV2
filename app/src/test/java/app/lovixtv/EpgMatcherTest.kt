@@ -3,10 +3,10 @@
  * Copyright (C) 2026 The OpenTV Contributors
  * Licensed under the GNU General Public License v3.0 or later.
  */
-package app.opentv
+package app.lovixtv
 
-import app.opentv.data.parser.ChannelNameNormalizer
-import app.opentv.data.repo.EpgMatcher
+import app.lovixtv.data.parser.ChannelNameNormalizer
+import app.lovixtv.data.repo.EpgMatcher
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 

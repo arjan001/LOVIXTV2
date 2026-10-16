@@ -3,10 +3,10 @@
  * Copyright (C) 2026 The OpenTV Contributors
  * Licensed under the GNU General Public License v3.0 or later.
  */
-package app.opentv
+package app.lovixtv
 
-import app.opentv.data.model.SourceKind
-import app.opentv.data.repo.SourceRepository
+import app.lovixtv.data.model.SourceKind
+import app.lovixtv.data.repo.SourceRepository
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
