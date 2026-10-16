@@ -9,7 +9,7 @@ automatically.
 
 On [github.com/new](https://github.com/new):
 
-- **Name:** `opentv`
+- **Name:** `lovixtv`
 - **Visibility:** Public — GitHub Pages and Actions are free on public repos, and the whole
   point of the project is that people can read it
 - **Do not** tick "Add a README", ".gitignore" or "Choose a license" — this repo already has
@@ -17,11 +17,11 @@ On [github.com/new](https://github.com/new):
 
 ## 2. Push it
 
-From the unzipped `opentv` folder:
+From the unzipped `lovixtv` folder:
 
 ```bash
-cd opentv
-git remote add origin https://github.com/opentvproject/opentv.git
+cd lovixtv
+git remote add origin https://github.com/lovixtvproject/lovixtv.git
 git push -u origin main
 ```
 
@@ -36,7 +36,7 @@ scope, and paste that when prompted.
 
 The "Sponsor" button on the repo comes from `.github/FUNDING.yml` — it points at GitHub Sponsors
 and a PayPal donate link. Edit that file to change them. Everything else already points at
-`opentvproject/opentv`.
+`lovixtvproject/lovixtv`.
 
 ## 4. Turn on Pages
 
@@ -48,7 +48,7 @@ That's the only setting. Don't pick "Deploy from a branch" — the workflow in
 Your install page will be at:
 
 ```
-https://opentvproject.github.io/opentv/
+https://lovixtvproject.github.io/lovixtv/
 ```
 
 It goes live a minute or two after the first push.
@@ -80,7 +80,7 @@ Open the install page and follow the steps there. The short address to type into
 **Downloader** app is:
 
 ```
-opentvproject.github.io/opentv/apk
+lovixtvproject.github.io/lovixtv/apk
 ```
 
 That link always redirects to the newest APK, so it never needs changing between releases.

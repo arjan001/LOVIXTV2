@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  This file is part of OpenTV.
-  Copyright (C) 2026 The OpenTV Contributors
+  This file is part of LOVIXTV.
+  Copyright (C) 2026 The LOVIXTV Contributors
   Licensed under the GNU General Public License v3.0 or later.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -20,7 +20,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
-    <!-- Lets OpenTV ask the user to be exempted from battery optimisation ("Doze"). Without the
+    <!-- Lets LOVIXTV ask the user to be exempted from battery optimisation ("Doze"). Without the
          exemption Android TV / Fire TV freeze the app during standby and kill an in-progress or
          scheduled recording — this is what lets a capture keep running with the box asleep, the
          same as a set-top box. The user still grants it through the system dialog. -->
@@ -52,13 +52,13 @@
         android:required="false" />
 
     <application
-        android:name=".OpenTvApp"
+        android:name=".LovixTvApp"
         android:allowBackup="true"
         android:banner="@drawable/banner"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.OpenTV"
+        android:theme="@style/Theme.LOVIXTV"
         android:usesCleartextTraffic="true"
         tools:targetApi="34">
 
@@ -76,7 +76,7 @@
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
             android:screenOrientation="fullUser"
-            android:theme="@style/Theme.OpenTV">
+            android:theme="@style/Theme.LOVIXTV">
 
             <!-- Phones and tablets -->
             <intent-filter>

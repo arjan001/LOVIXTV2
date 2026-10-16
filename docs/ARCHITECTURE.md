@@ -25,7 +25,7 @@ stranger with a broken channel being able to find the relevant code in under fiv
 
 ## No backend. At all.
 
-OpenTV has no server. There is no account, no login, no cloud sync, no web dashboard for
+LOVIXTV has no server. There is no account, no login, no cloud sync, no web dashboard for
 editing your channel list from a browser.
 
 This is the single most important architectural decision in the project, and it is worth being
@@ -38,7 +38,7 @@ servers go quiet — taking the app with them, because by then the app cannot st
 them. Users who paid discover that their "lifetime" purchase bought them a client for a
 service that no longer exists.
 
-So OpenTV stores everything on the device, in SQLite. The consequences are accepted honestly:
+So LOVIXTV stores everything on the device, in SQLite. The consequences are accepted honestly:
 
 - Setting up a second TV means entering your details again. This is a real cost.
 - Favourites and channel ordering do not follow you between devices.

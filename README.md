@@ -1,4 +1,4 @@
-# OpenTV
+# LOVIXTV
 
 **A free, open-source IPTV player for Android TV, Fire TV, phones and tablets.**
 
@@ -10,9 +10,9 @@ No account. No subscription. No server of ours between you and your provider.
 
 ---
 
-> **Support OpenTV** — it's free and always will be. If it saved you from a dead "lifetime"
+> **Support LOVIXTV** — it's free and always will be. If it saved you from a dead "lifetime"
 > app, you can chip in via **[GitHub Sponsors](https://github.com/sponsors/legionnaireneyland)**
-> or **[PayPal](https://www.paypal.com/donate/?business=leetobin1982@gmail.com&item_name=Support+OpenTV&no_recurring=0&currency_code=GBP)**.
+> or **[PayPal](https://www.paypal.com/donate/?business=leetobin1982@gmail.com&item_name=Support+LOVIXTV&no_recurring=0&currency_code=GBP)**.
 > Entirely optional; the app is never paywalled.
 
 ## Why this exists
@@ -25,11 +25,11 @@ paid is left with an app that no longer works and no way to fix it.
 The people affected are not helpless. They are often technical. What they lack is not skill
 but *access*: the code is closed, so nobody else can pick it up.
 
-OpenTV is the same category of app built so that cannot happen. The source is public and
+LOVIXTV is the same category of app built so that cannot happen. The source is public and
 GPL-licensed. If the current maintainers vanish tomorrow, anyone can fork it, build it and
 keep it alive. That is the entire point.
 
-**OpenTV is not a fork or a decompilation of any existing app.** It is written from scratch.
+**LOVIXTV is not a fork or a decompilation of any existing app.** It is written from scratch.
 
 ## What it does
 
@@ -52,7 +52,7 @@ keep it alive. That is the entire point.
 
 The live TV guide — programme grid, favourites, and a live preview:
 
-![OpenTV live TV guide](docs/screenshots/01-guide.png)
+![LOVIXTV live TV guide](docs/screenshots/01-guide.png)
 
 | Recordings &amp; reminders | Free cloud sync — your own NAS, no server |
 | :---: | :---: |
@@ -72,7 +72,7 @@ Open-source through and through — the About screen carries the licence, the li
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the reasoning, and note that "sync your
   channel list to *our* servers" is precisely the feature whose hosting bill makes a one-off
   payment unsustainable.
-- **No content.** OpenTV is a player. You bring a service you already pay for. The project has
+- **No content.** LOVIXTV is a player. You bring a service you already pay for. The project has
   no affiliation with any provider and does not help you find one.
 
 ## Install
@@ -117,7 +117,7 @@ Run the tests:
 
 ## How it was built
 
-OpenTV was written with **Claude**, Anthropic's AI assistant, working from a human's
+LOVIXTV was written with **Claude**, Anthropic's AI assistant, working from a human's
 direction — the design decisions, the priorities, the "no server, ever" rule, and every
 review of what shipped were the maintainer's; Claude did the bulk of the drafting, wiring and
 debugging against that direction.
@@ -139,13 +139,13 @@ guessing. If a channel fails on your setup, [open an issue](../../issues/new/cho
 
 ## Supporting the project
 
-OpenTV is free and always will be. There is nothing to buy, no premium tier, and no lifetime
+LOVIXTV is free and always will be. There is nothing to buy, no premium tier, and no lifetime
 subscription — the failure mode this project was built in response to is a promise nobody
 could keep, so we are not making one.
 
 If it saves you money or annoyance and you want to say thanks, you can sponsor the project via
 [GitHub Sponsors](https://github.com/sponsors/legionnaireneyland) or
-[PayPal](https://www.paypal.com/donate/?business=leetobin1982@gmail.com&item_name=Support+OpenTV&no_recurring=0&currency_code=GBP)
+[PayPal](https://www.paypal.com/donate/?business=leetobin1982@gmail.com&item_name=Support+LOVIXTV&no_recurring=0&currency_code=GBP)
 — see [.github/FUNDING.yml](.github/FUNDING.yml). Tips fund nothing except spare-evening development;
 nobody is owed a feature for one, and nothing is gated behind one.
 
@@ -159,6 +159,6 @@ of work the community did for free.
 
 ## Legal
 
-OpenTV is a media player, comparable to VLC. It ships with no channels, no playlists, and no
+LOVIXTV is a media player, comparable to VLC. It ships with no channels, no playlists, and no
 links to any. What you point it at, and whether you are entitled to, is between you and your
 provider.

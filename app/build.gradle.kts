@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "app.opentv"
+    namespace = "app.lovixtv"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.opentv"
+        applicationId = "app.lovixtv"
         minSdk = 23
         targetSdk = 35
         versionCode = 20
