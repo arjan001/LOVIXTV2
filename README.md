@@ -60,9 +60,6 @@ The live TV guide — programme grid, favourites, and a live preview:
 | Movies &amp; series | Settings |
 | ![Movies](docs/screenshots/04-movies.png) | ![Settings](docs/screenshots/05-settings.png) |
 
-Open-source through and through — the About screen carries the licence, the links, and a donation QR:
-
-![About](docs/screenshots/06-about.png)
 
 ## What it deliberately does not do
 
