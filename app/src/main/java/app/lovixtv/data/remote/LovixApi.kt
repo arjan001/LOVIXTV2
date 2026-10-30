@@ -24,10 +24,13 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -110,8 +113,13 @@ class LovixApi(
         val baseUrl = source.url.trimEnd('/')
         val apiUrl = "$baseUrl/api.php"
 
-        val filters = listOf(mapOf("type" to "genre", "value" to genre))
-        val filtersJson = json.encodeToString(List<Map<String, String>>.serializer(), filters)
+        val filtersJsonArray = buildJsonArray {
+            add(buildJsonObject {
+                put("type", "genre")
+                put("value", genre)
+            })
+        }
+        val filtersJson = json.encodeToString(JsonElement.serializer(), filtersJsonArray)
 
         runCatching {
             val body = getJson(apiUrl, mapOf("action" to "filter", "filters" to filtersJson))
