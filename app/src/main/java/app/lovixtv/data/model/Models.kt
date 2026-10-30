@@ -33,6 +33,13 @@ enum class SourceKind {
      * carry a [Channel.cmd] resolved to a real URL on demand at play time.
      */
     STALKER,
+
+    /**
+     * LOVIX website source — fetches movies from the LVX website API (api.php / adult.php).
+     * Uses the same movie database as the web player. Stream URLs are built using Xtream Codes
+     * format: SERVER/movie/USERNAME/PASSWORD/ID.EXT
+     */
+    LOVIX,
 }
 
 /** Live-stream container the panel is asked for. Xtream panels serve one or both. */

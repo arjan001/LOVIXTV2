@@ -26,6 +26,7 @@ import app.lovixtv.data.model.StreamKind
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.parser.M3uParser
 import app.lovixtv.data.parser.VodTitleCleaner
+import app.lovixtv.data.remote.LovixApi
 import app.lovixtv.data.remote.StalkerApi
 import app.lovixtv.data.remote.TmdbClient
 import app.lovixtv.data.remote.XtreamApi
@@ -127,6 +128,7 @@ class CatalogRepository(
     private val positionDao: PlaybackPositionDao,
     private val api: XtreamApi,
     private val stalkerApi: StalkerApi,
+    private val lovixApi: LovixApi,
     private val http: OkHttpClient,
     private val settings: AppSettings,
 ) {
@@ -620,9 +622,14 @@ class CatalogRepository(
         val live =
             if (settings.liveEnabled.value) syncLive(source, nowUtcMillis)
             else SyncResult.Success(0, 0, 0)
-        if (live is SyncResult.Success && source.kind == SourceKind.XTREAM) {
-            runCatching { syncXtreamVod(source, nowUtcMillis) }
-                .onFailure { Log.w(TAG, "VOD sync failed for source ${source.id}", it) }
+        if (live is SyncResult.Success) {
+            when (source.kind) {
+                SourceKind.XTREAM -> runCatching { syncXtreamVod(source, nowUtcMillis) }
+                    .onFailure { Log.w(TAG, "VOD sync failed for source ${source.id}", it) }
+                SourceKind.LOVIX -> runCatching { syncLovixVod(source, nowUtcMillis) }
+                    .onFailure { Log.w(TAG, "LOVIX VOD sync failed for source ${source.id}", it) }
+                else -> {}
+            }
         }
         live
     }
@@ -634,6 +641,7 @@ class CatalogRepository(
                 SourceKind.XTREAM -> syncXtreamLive(source, nowUtcMillis)
                 SourceKind.M3U -> syncM3u(source, nowUtcMillis)
                 SourceKind.STALKER -> syncStalkerLive(source, nowUtcMillis)
+                SourceKind.LOVIX -> SyncResult.Success(0, 0, 0) // LOVIX is VOD-only, no live channels
             }
         } catch (e: CancellationException) {
             throw e
@@ -646,8 +654,37 @@ class CatalogRepository(
     /** Movies + series — best-effort, meant to run in the background so a huge VOD list never
      * blocks live TV. Silent on failure: an account with no VOD is normal, not an error. */
     suspend fun syncVod(source: Source, nowUtcMillis: Long) = withContext(Dispatchers.IO) {
-        runCatching { if (source.kind == SourceKind.XTREAM) syncXtreamVod(source, nowUtcMillis) }
-            .onFailure { Log.w(TAG, "VOD sync failed for source ${source.id}", it) }
+        when (source.kind) {
+            SourceKind.XTREAM -> runCatching { syncXtreamVod(source, nowUtcMillis) }
+                .onFailure { Log.w(TAG, "VOD sync failed for source ${source.id}", it) }
+            SourceKind.LOVIX -> runCatching { syncLovixVod(source, nowUtcMillis) }
+                .onFailure { Log.w(TAG, "LOVIX VOD sync failed for source ${source.id}", it) }
+            else -> {} // M3U and STALKER don't have VOD sync here
+        }
+    }
+
+    /**
+     * Sync LOVIX movies from the LVX website API.
+     * Fetches all movies via bootstrap, stores categories and movies in the local database.
+     */
+    private suspend fun syncLovixVod(source: Source, nowUtcMillis: Long) {
+        val moviesOn = settings.moviesEnabled.value
+        if (!moviesOn) return
+
+        val result = lovixApi.bootstrap(source)
+
+        // Store categories (genres)
+        if (result.categories.isNotEmpty()) {
+            categoryDao.upsertAll(result.categories)
+        }
+
+        // Store movies
+        if (result.movies.isNotEmpty()) {
+            movieDao.upsertAll(result.movies)
+            Log.i(TAG, "LOVIX sync: ${result.movies.size} movies, ${result.categories.size} categories")
+        }
+
+        sourceDao.markCatalogSynced(source.id, nowUtcMillis)
     }
 
     private suspend fun syncXtreamLive(source: Source, nowUtcMillis: Long): SyncResult {

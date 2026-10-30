@@ -122,8 +122,21 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
                 return@launch
             }
 
-            _ui.value = _ui.value.copy(syncMessage = "Loading channels…")
             val now = System.currentTimeMillis()
+
+            // LOVIX sources are VOD-only — skip live channel sync and load movies directly
+            if (saved.kind == app.lovixtv.data.model.SourceKind.LOVIX) {
+                _ui.value = _ui.value.copy(syncMessage = "Loading movies…")
+                graph.catalogRepository.syncVod(saved, now)
+                _ui.value = _ui.value.copy(
+                    syncing = false,
+                    syncMessage = "Movies loaded from LOVIX server.",
+                )
+                onDone(true)
+                return@launch
+            }
+
+            _ui.value = _ui.value.copy(syncMessage = "Loading channels…")
             // Load live channels first and get the user watching straight away. Movies, series and
             // the guide are what make a big provider take minutes — they load in the background so
             // "loading channels" is a few seconds, not a twenty-minute blank screen.

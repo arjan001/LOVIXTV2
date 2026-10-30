@@ -8,6 +8,7 @@ package app.lovixtv.data.repo
 import app.lovixtv.data.db.SourceDao
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
+import app.lovixtv.data.remote.LovixApi
 import app.lovixtv.data.remote.StalkerApi
 import app.lovixtv.data.remote.XtreamApi
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ class SourceRepository(
     private val dao: SourceDao,
     private val api: XtreamApi,
     private val stalkerApi: StalkerApi,
+    private val lovixApi: LovixApi,
 ) {
     fun observeAll(): Flow<List<Source>> = dao.observeAll()
 
@@ -56,6 +58,11 @@ class SourceRepository(
                     stalkerApi.handshakeTest(source.copy(url = normaliseUrl(source.url, source.kind)))
                     "Portal accepted the MAC address. Loading channels…"
                 }
+                SourceKind.LOVIX -> {
+                    val normalized = source.copy(url = normaliseUrl(source.url, source.kind))
+                    val result = lovixApi.bootstrap(normalized)
+                    "Connected — ${result.movies.size} movies available."
+                }
             }
         }
     }
@@ -82,6 +89,8 @@ class SourceRepository(
             // A Stalker portal URL is the portal path itself (e.g. .../stalker_portal or .../c) —
             // stripping Xtream API paths would be wrong; just tidy the trailing slash.
             if (kind == SourceKind.STALKER) return url.trimEnd('/')
+            // LOVIX sources: keep the base URL (e.g. https://dev.lovix.com)
+            if (kind == SourceKind.LOVIX) return url.trimEnd('/')
 
             url = url.substringBefore("/player_api.php")
                 .substringBefore("/panel_api.php")

@@ -127,6 +127,7 @@ fun AddSourceScreen(
         SourceKind.XTREAM -> username.isNotBlank() && password.isNotBlank()
         SourceKind.M3U -> true
         SourceKind.STALKER -> mac.isNotBlank()
+        SourceKind.LOVIX -> username.isNotBlank() && password.isNotBlank()
     }
 
     Column(
@@ -169,6 +170,11 @@ fun AddSourceScreen(
                     onClick = { kind = SourceKind.STALKER },
                     label = { Text(stringResource(R.string.onboarding_stalker_portal)) },
                 )
+                FilterChip(
+                    selected = kind == SourceKind.LOVIX,
+                    onClick = { kind = SourceKind.LOVIX },
+                    label = { Text("LOVIX") },
+                )
             }
 
             Spacer(Modifier.height(20.dp))
@@ -191,6 +197,7 @@ fun AddSourceScreen(
                             SourceKind.XTREAM -> stringResource(R.string.onboarding_server_address)
                             SourceKind.M3U -> stringResource(R.string.onboarding_playlist_url)
                             SourceKind.STALKER -> stringResource(R.string.onboarding_portal_url)
+                            SourceKind.LOVIX -> "LOVIX server URL"
                         },
                     )
                 },
@@ -200,6 +207,7 @@ fun AddSourceScreen(
                             SourceKind.XTREAM -> stringResource(R.string.onboarding_server_help)
                             SourceKind.M3U -> stringResource(R.string.onboarding_playlist_help)
                             SourceKind.STALKER -> stringResource(R.string.onboarding_portal_help)
+                            SourceKind.LOVIX -> "e.g. https://dev.lovix.com"
                         },
                     )
                 },
@@ -209,12 +217,17 @@ fun AddSourceScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            if (kind == SourceKind.XTREAM) {
+            if (kind == SourceKind.XTREAM || kind == SourceKind.LOVIX) {
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.recset_field_username)) },
+                    supportingText = {
+                        if (kind == SourceKind.LOVIX) {
+                            Text("Xtream username from account.json")
+                        }
+                    },
                     trailingIcon = { PasteButton { username += it } },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -224,6 +237,11 @@ fun AddSourceScreen(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.recset_field_password)) },
+                    supportingText = {
+                        if (kind == SourceKind.LOVIX) {
+                            Text("Xtream password from account.json")
+                        }
+                    },
                     trailingIcon = { PasteButton { password += it } },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
