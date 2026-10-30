@@ -421,6 +421,7 @@ class ManagerServer(
             SourceKind.XTREAM -> if (username.isNullOrBlank() || password.isNullOrBlank()) return null
             SourceKind.STALKER -> if (mac.isNullOrBlank()) return null
             SourceKind.M3U -> Unit
+            SourceKind.LOVIX -> if (username.isNullOrBlank() || password.isNullOrBlank()) return null
         }
         return Source(
             name = name.trim().ifBlank { if (k == SourceKind.M3U) "Playlist" else "Provider" },

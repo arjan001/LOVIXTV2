@@ -111,7 +111,7 @@ class LovixApi(
         val apiUrl = "$baseUrl/api.php"
 
         val filters = listOf(mapOf("type" to "genre", "value" to genre))
-        val filtersJson = json.encodeToString(List.serializer(), filters)
+        val filtersJson = json.encodeToString(List<Map<String, String>>.serializer(), filters)
 
         runCatching {
             val body = getJson(apiUrl, mapOf("action" to "filter", "filters" to filtersJson))
@@ -140,13 +140,15 @@ class LovixApi(
         val httpUrl = url.toHttpUrlOrNull()
             ?: throw LovixException("Invalid URL: $url")
 
-        val fullUrl = httpUrl.newBuilder()
-            .addQueryParamsAndValuesEncoded(params)
-            .build()
+        val fullUrl = httpUrl.newBuilder().apply {
+            for ((key, value) in params) {
+                addQueryParameter(key, value)
+            }
+        }.build()
 
         val request = Request.Builder()
             .url(fullUrl)
-            .header("User-Agent", sourceUserAgent())
+            .addHeader("User-Agent", sourceUserAgent())
             .build()
 
         return http.newCall(request).execute().use { response ->
@@ -177,7 +179,7 @@ class LovixApi(
                     ?: obj["title"]?.contentOrNull
                     ?: obj["name"]?.contentOrNull
                     ?: id,
-                categoryId = obj["genre"]?.firstOrNull()?.contentOrNull,
+                categoryId = obj["genre"]?.jsonArrayOrNull?.firstOrNull()?.jsonPrimitive?.contentOrNull,
                 posterUrl = obj["poster"]?.contentOrNull?.takeIf { it.isNotBlank() },
                 rating = obj["rating"]?.toDoubleOrNull(),
                 year = obj["year"]?.toIntOrNull(),
@@ -189,8 +191,8 @@ class LovixApi(
                 streamUrl = buildStreamUrl(source, id, obj["container_extension"]?.contentOrNull),
                 addedMillis = 0L,
                 backdropUrl = obj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
-                cast = obj["people"]?.joinPeopleList(),
-                genre = obj["genre"]?.joinGenreList(),
+                cast = joinPeopleList(obj["people"]),
+                genre = joinGenreList(obj["genre"]),
             )
         }
     }
@@ -206,7 +208,7 @@ class LovixApi(
                 ?: movieObj["title"]?.contentOrNull
                 ?: movieObj["name"]?.contentOrNull
                 ?: id,
-            categoryId = movieObj["genre"]?.firstOrNull()?.contentOrNull,
+            categoryId = movieObj["genre"]?.jsonArrayOrNull?.firstOrNull()?.jsonPrimitive?.contentOrNull,
             posterUrl = movieObj["poster"]?.contentOrNull?.takeIf { it.isNotBlank() },
             rating = movieObj["rating"]?.toDoubleOrNull(),
             year = movieObj["year"]?.toIntOrNull(),
@@ -218,8 +220,8 @@ class LovixApi(
             streamUrl = buildStreamUrl(source, id, movieObj["container_extension"]?.contentOrNull),
             addedMillis = 0L,
             backdropUrl = movieObj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
-            cast = movieObj["people"]?.joinPeopleList(),
-            genre = movieObj["genre"]?.joinGenreList(),
+            cast = joinPeopleList(movieObj["people"]),
+            genre = joinGenreList(movieObj["genre"]),
         )
     }
 
@@ -268,8 +270,9 @@ class LovixApi(
 
     // ── Extension Functions ────────────────────────────────────────────
 
-    private fun JsonArray.joinPeopleList(): String {
-        return mapNotNull {
+    private fun joinPeopleList(element: JsonElement?): String {
+        val array = (element as? JsonArray) ?: return ""
+        return array.mapNotNull {
             when (it) {
                 is JsonObject -> it["name"]?.contentOrNull
                 is JsonPrimitive -> it.contentOrNull
@@ -278,8 +281,9 @@ class LovixApi(
         }.filter { it.isNotBlank() }.joinToString(", ")
     }
 
-    private fun JsonArray.joinGenreList(): String {
-        return mapNotNull { it.jsonPrimitive?.contentOrNull }
+    private fun joinGenreList(element: JsonElement?): String {
+        val array = (element as? JsonArray) ?: return ""
+        return array.mapNotNull { it.jsonPrimitive?.contentOrNull }
             .filter { it.isNotBlank() }
             .joinToString(", ")
     }
