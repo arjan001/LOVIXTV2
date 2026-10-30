@@ -45,7 +45,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.lovixtv.R
-import app.lovixtv.core.LovixDefaults
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
 import app.lovixtv.isRunningOnTelevision
@@ -100,18 +99,10 @@ fun AddSourceScreen(
     }
 
     var kind by remember(existing?.id) { mutableStateOf(existing?.kind ?: SourceKind.XTREAM) }
-
-    // When switching to LOVIX kind, pre-fill with default credentials
-    val lovixDefaults = LovixDefaults
-    val defaultUrl = if (existing != null) existing.url else (if (kind == SourceKind.LOVIX) lovixDefaults.SERVER_URL else "")
-    val defaultUsername = if (existing != null) existing.username else (if (kind == SourceKind.LOVIX) lovixDefaults.USERNAME else "")
-    val defaultPassword = if (existing != null) existing.password else (if (kind == SourceKind.LOVIX) lovixDefaults.PASSWORD else "")
-    val defaultName = if (existing != null) existing.name else (if (kind == SourceKind.LOVIX) lovixDefaults.SOURCE_NAME else "")
-
-    var name by remember(existing?.id, kind) { mutableStateOf(defaultName) }
-    var url by remember(existing?.id, kind) { mutableStateOf(defaultUrl) }
-    var username by remember(existing?.id, kind) { mutableStateOf(defaultUsername) }
-    var password by remember(existing?.id, kind) { mutableStateOf(defaultPassword) }
+    var name by remember(existing?.id) { mutableStateOf(existing?.name ?: "") }
+    var url by remember(existing?.id) { mutableStateOf(existing?.url ?: "") }
+    var username by remember(existing?.id) { mutableStateOf(existing?.username ?: "") }
+    var password by remember(existing?.id) { mutableStateOf(existing?.password ?: "") }
     var mac by remember(existing?.id) { mutableStateOf(existing?.macAddress ?: "") }
     var epgUrl by remember(existing?.id) { mutableStateOf(existing?.epgUrl ?: "") }
     var showAdvanced by remember { mutableStateOf(false) }
@@ -207,7 +198,7 @@ fun AddSourceScreen(
                             SourceKind.XTREAM -> stringResource(R.string.onboarding_server_address)
                             SourceKind.M3U -> stringResource(R.string.onboarding_playlist_url)
                             SourceKind.STALKER -> stringResource(R.string.onboarding_portal_url)
-                            SourceKind.LOVIX -> "LOVIX server URL"
+                            SourceKind.LOVIX -> stringResource(R.string.onboarding_server_address)
                         },
                     )
                 },
@@ -217,7 +208,7 @@ fun AddSourceScreen(
                             SourceKind.XTREAM -> stringResource(R.string.onboarding_server_help)
                             SourceKind.M3U -> stringResource(R.string.onboarding_playlist_help)
                             SourceKind.STALKER -> stringResource(R.string.onboarding_portal_help)
-                            SourceKind.LOVIX -> "e.g. https://dev.lovix.com"
+                            SourceKind.LOVIX -> stringResource(R.string.onboarding_server_help)
                         },
                     )
                 },
@@ -233,11 +224,6 @@ fun AddSourceScreen(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.recset_field_username)) },
-                    supportingText = {
-                        if (kind == SourceKind.LOVIX) {
-                            Text("Xtream username from account.json")
-                        }
-                    },
                     trailingIcon = { PasteButton { username += it } },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -247,11 +233,6 @@ fun AddSourceScreen(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.recset_field_password)) },
-                    supportingText = {
-                        if (kind == SourceKind.LOVIX) {
-                            Text("Xtream password from account.json")
-                        }
-                    },
                     trailingIcon = { PasteButton { password += it } },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -324,23 +305,6 @@ fun AddSourceScreen(
             }
             ui.syncMessage?.let { message ->
                 Text(message, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(12.dp))
-            }
-
-            // For LOVIX first-run: show a "Continue with defaults" button that uses pre-filled credentials
-            if (existing == null && kind == SourceKind.LOVIX) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ),
-                ) {
-                    Text(
-                        "Default credentials are pre-filled. Tap below to start watching, or edit the fields to use your own credentials.",
-                        Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
                 Spacer(Modifier.height(12.dp))
             }
 
