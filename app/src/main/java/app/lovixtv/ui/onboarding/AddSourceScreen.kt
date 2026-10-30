@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.lovixtv.R
+import app.lovixtv.core.LovixDefaults
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
 import app.lovixtv.isRunningOnTelevision
@@ -98,10 +100,18 @@ fun AddSourceScreen(
     }
 
     var kind by remember(existing?.id) { mutableStateOf(existing?.kind ?: SourceKind.XTREAM) }
-    var name by remember(existing?.id) { mutableStateOf(existing?.name ?: "") }
-    var url by remember(existing?.id) { mutableStateOf(existing?.url ?: "") }
-    var username by remember(existing?.id) { mutableStateOf(existing?.username ?: "") }
-    var password by remember(existing?.id) { mutableStateOf(existing?.password ?: "") }
+
+    // When switching to LOVIX kind, pre-fill with default credentials
+    val lovixDefaults = LovixDefaults
+    val defaultUrl = if (existing != null) existing.url else (if (kind == SourceKind.LOVIX) lovixDefaults.SERVER_URL else "")
+    val defaultUsername = if (existing != null) existing.username else (if (kind == SourceKind.LOVIX) lovixDefaults.USERNAME else "")
+    val defaultPassword = if (existing != null) existing.password else (if (kind == SourceKind.LOVIX) lovixDefaults.PASSWORD else "")
+    val defaultName = if (existing != null) existing.name else (if (kind == SourceKind.LOVIX) lovixDefaults.SOURCE_NAME else "")
+
+    var name by remember(existing?.id, kind) { mutableStateOf(defaultName) }
+    var url by remember(existing?.id, kind) { mutableStateOf(defaultUrl) }
+    var username by remember(existing?.id, kind) { mutableStateOf(defaultUsername) }
+    var password by remember(existing?.id, kind) { mutableStateOf(defaultPassword) }
     var mac by remember(existing?.id) { mutableStateOf(existing?.macAddress ?: "") }
     var epgUrl by remember(existing?.id) { mutableStateOf(existing?.epgUrl ?: "") }
     var showAdvanced by remember { mutableStateOf(false) }
@@ -314,6 +324,23 @@ fun AddSourceScreen(
             }
             ui.syncMessage?.let { message ->
                 Text(message, style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // For LOVIX first-run: show a "Continue with defaults" button that uses pre-filled credentials
+            if (existing == null && kind == SourceKind.LOVIX) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
+                ) {
+                    Text(
+                        "Default credentials are pre-filled. Tap below to start watching, or edit the fields to use your own credentials.",
+                        Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
             }
 

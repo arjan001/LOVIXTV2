@@ -55,6 +55,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import app.lovixtv.core.AppSettings
+import app.lovixtv.core.LovixDefaults
 import app.lovixtv.core.ServiceLocator
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.ui.MainScreen
@@ -244,9 +245,24 @@ private fun LovixTvApp(isTelevision: Boolean) {
         return
     }
 
-    // First run goes straight to setup — an empty channel list with no explanation is the
-    // worst possible first impression.
-    val start = if (sourcesUi.sources.isEmpty()) Routes.ADD_SOURCE else Routes.HOME
+    // First run: auto-sync default LOVIX movies so the user sees content immediately.
+    // If the user already has sources, go straight home.
+    val isFirstRun = sourcesUi.sources.isEmpty()
+    val start = if (isFirstRun) Routes.ADD_SOURCE else Routes.HOME
+
+    // On first launch, automatically save and sync the default LOVIX source in the background.
+    // The AddSourceScreen is still shown (with pre-filled defaults) so the user can edit
+    // credentials or skip to home. But the movies start loading right away.
+    LaunchedEffect(Unit) {
+        if (isFirstRun) {
+            val defaultSource = LovixDefaults.defaultSource()
+            sourcesViewModel.saveAndSync(defaultSource) { success ->
+                if (success) {
+                    // Default source synced — user will see movies when they navigate home
+                }
+            }
+        }
+    }
 
     // Boot to last channel: if enabled and we have one, jump straight into the player on launch.
     // Runs once; backing out returns to the guide and doesn't re-trigger.
