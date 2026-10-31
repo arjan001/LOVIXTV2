@@ -690,9 +690,16 @@ class CatalogRepository(
                 Log.w(TAG, "LOVIX sync: No movies returned from API. Check credentials and server URL.")
             }
 
-            // Store people (cast) and tags for UI shelves
-            // Note: These are not persisted to Room yet - held in ViewModel for Phase 2 UI
-            Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags")
+            // Store people (cast) and tags for UI shelves - cached in AppSettings
+            if (result.people.isNotEmpty() || result.tags.isNotEmpty()) {
+                val peopleJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+                    .encodeToString(app.lovixtv.data.model.Person.serializer().list, result.people)
+                val tagsJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+                    .encodeToString(app.lovixtv.data.model.Tag.serializer().list, result.tags)
+                settings.loenixPeopleJson = peopleJson
+                settings.loenixTagsJson = tagsJson
+                Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags (cached)")
+            }
 
             sourceDao.markCatalogSynced(source.id, nowUtcMillis)
         } catch (e: Exception) {

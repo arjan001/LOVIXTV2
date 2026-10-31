@@ -8,6 +8,7 @@ package app.lovixtv.update
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -85,11 +86,28 @@ class ApkInstaller(private val http: OkHttpClient) {
         val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            // Allow replacing an existing package — needed when the new APK has a different
-            // signature (e.g. release APK updating a debug-installed app on an emulator).
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            // Allow replacing an existing package even when signatures differ
+            // (e.g. release APK updating a debug-installed app on an emulator).
+            putExtra(Intent.EXTRA_UNINSTALL_OLD_PACKAGE, true)
+            putExtra(Intent.EXTRA_ALLOW_REPLACE, true)
         }
-        context.startActivity(intent)
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // If direct install fails (signature mismatch), try uninstall first
+            Log.w("ApkInstaller", "Direct install failed, trying uninstall-first: ${e.message}")
+            try {
+                val packageUri = Uri.parse("package:${context.packageName}")
+                val uninstallIntent = Intent(Intent.ACTION_DELETE, packageUri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(uninstallIntent)
+            } catch (e2: Exception) {
+                Log.e("ApkInstaller", "Uninstall also failed: ${e2.message}")
+            }
+        }
     }
 }

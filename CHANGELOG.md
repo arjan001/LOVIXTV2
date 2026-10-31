@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.9
+
+- **Cast & Tags shelves restored** — the Movies home screen now displays cast member photos in
+  circular cards and tag chips with counts. Data is cached locally after the first sync so the
+  sections appear instantly on subsequent launches even if the API is unreachable.
+- **APK update installation fixed** — the update installer now handles signature mismatches on
+  emulators by requesting uninstall of the old package first, so the update no longer fails midway.
+- **Whisper subtitles via WebVTT** — the subtitle service now serves WebVTT files directly via
+  `GET /subtitles/{mediaKey}.vtt?lang=en`, matching what the Android app expects. Subtitles are
+  cached locally and work offline when the server is down.
+
 ## 1.0.8
 
 - **LOVIX logo as app icon** — the app now displays the LOVIX brand logo when installing, updating,

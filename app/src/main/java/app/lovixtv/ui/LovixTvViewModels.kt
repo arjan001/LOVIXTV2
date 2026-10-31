@@ -945,14 +945,37 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                     graph.catalogRepository.seriesByGenreFrom(allSeries)
                 }.getOrDefault(emptyList())
 
-                // Load people and tags from the first LOVIX source (Phase 2 UI shelves)
-                val lovixSource = runCatching { graph.sourceRepository.enabled().firstOrNull { it.kind == SourceKind.LOVIX } }.getOrNull()
-                if (lovixSource != null) {
+                // Load people and tags from cached settings (stored during syncLovixVod)
+                val cachedPeople = runCatching { settings.loenixPeopleJson }.getOrNull()
+                val cachedTags = runCatching { settings.loenixTagsJson }.getOrNull()
+                if (cachedPeople != null) {
                     runCatching {
-                        val result = graph.catalogRepository.syncLovixBootstrap(lovixSource)
-                        _people.value = result.people
-                        _tags.value = result.tags
-                    }.onFailure { Log.w("VodViewModel", "Failed to load people/tags", it) }
+                        val peopleList = json.decodeFromString<List<Person>>(cachedPeople)
+                        if (peopleList.isNotEmpty()) _people.value = peopleList
+                    }.onFailure { Log.w("VodViewModel", "Failed to parse cached people", it) }
+                }
+                if (cachedTags != null) {
+                    runCatching {
+                        val tagsList = json.decodeFromString<List<Tag>>(cachedTags)
+                        if (tagsList.isNotEmpty()) _tags.value = tagsList
+                    }.onFailure { Log.w("VodViewModel", "Failed to parse cached tags", it) }
+                }
+                // Fallback: if no cached data, try fetching from API once
+                if (_people.value.isEmpty() || _tags.value.isEmpty()) {
+                    val lovixSource = runCatching { graph.sourceRepository.enabled().firstOrNull { it.kind == SourceKind.LOVIX } }.getOrNull()
+                    if (lovixSource != null) {
+                        runCatching {
+                            val result = graph.catalogRepository.syncLovixBootstrap(lovixSource)
+                            if (result.people.isNotEmpty()) {
+                                _people.value = result.people
+                                settings.loenixPeopleJson = json.encodeToString(result.people)
+                            }
+                            if (result.tags.isNotEmpty()) {
+                                _tags.value = result.tags
+                                settings.loenixTagsJson = json.encodeToString(result.tags)
+                            }
+                        }.onFailure { Log.w("VodViewModel", "Failed to load people/tags from API", it) }
+                    }
                 }
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)
