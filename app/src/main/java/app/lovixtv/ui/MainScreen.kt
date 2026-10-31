@@ -25,16 +25,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,9 +108,17 @@ fun MainScreen(
     onPlayCatchup: (mediaKey: String, url: String, title: String, ua: String) -> Unit,
     activeProfileName: String,
 ) {
+    // Detect small screens (phones)
+    val configuration = LocalConfiguration.current
+    val isSmallScreen = configuration.screenWidthDp < 600
+
+    // Sidebar state: on small screens, default to closed; on TV/tablet, always open
+    var sidebarOpen by remember { mutableStateOf(!isSmallScreen) }
+
     // Content-type toggles: a switched-off type has its tab hidden here (and its sync skipped in
     // CatalogRepository). Recordings is never a content type, so it always stays — which also means
     // there is always at least one tab and never a blank shell, even with all three types off.
+    // LOVIX is VOD-only, so we hide Live TV and Shows tabs, keeping only Movies and Recordings.
     val context = LocalContext.current
     val settings = remember { AppSettings.get(context) }
     val liveEnabled by settings.liveEnabled.collectAsState()
@@ -114,14 +126,14 @@ fun MainScreen(
     val seriesEnabled by settings.seriesEnabled.collectAsState()
     val visibleTabs = remember(liveEnabled, moviesEnabled, seriesEnabled) {
         buildList {
-            if (liveEnabled) add(Tab.LIVE)
+            // LOVIX VOD-only mode: only Movies and Recordings
+            // if (liveEnabled) add(Tab.LIVE)
             if (moviesEnabled) add(Tab.MOVIES)
-            if (seriesEnabled) add(Tab.SHOWS)
+            // if (seriesEnabled) add(Tab.SHOWS)
             add(Tab.RECORDINGS)
         }
     }
-    // The default/home tab is the first visible one — Live TV normally, otherwise the first type
-    // still switched on (or Recordings if none are).
+    // The default/home tab is the first visible one — Movies for LOVIX
     val homeTab = visibleTabs.first()
 
     var tab by remember { mutableStateOf(homeTab) }
@@ -161,18 +173,37 @@ fun MainScreen(
     // of it and leave a sliver poking out — so they live side by side and never collide.
     Column(Modifier.fillMaxSize()) {
       Row(Modifier.weight(1f).fillMaxWidth()) {
-        NavRail(
-            tabs = visibleTabs,
-            current = tab,
-            onSelect = { tab = it },
-            onOpenSearch = onOpenSearch,
-            onOpenSettings = onOpenSettings,
-            onOpenProfiles = onOpenProfiles,
-            activeProfileName = activeProfileName,
-        )
+        // On small screens, sidebar is hidden by default and can be toggled
+        if (sidebarOpen || !isSmallScreen) {
+          NavRail(
+              tabs = visibleTabs,
+              current = tab,
+              onSelect = { tab = it },
+              onOpenSearch = onOpenSearch,
+              onOpenSettings = onOpenSettings,
+              onOpenProfiles = onOpenProfiles,
+              activeProfileName = activeProfileName,
+              onCloseSidebar = { if (isSmallScreen) sidebarOpen = false },
+              isSmallScreen = isSmallScreen,
+          )
+        }
 
         Box(Modifier.weight(1f).fillMaxHeight()) {
+            // Menu button for small screens when sidebar is closed
+            if (isSmallScreen && !sidebarOpen) {
+                IconButton(
+                    onClick = { sidebarOpen = true },
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Open menu")
+                }
+            }
+
             when (tab) {
+                // LOVIX VOD-only mode: Live TV and Shows tabs are hidden
+                /*
                 Tab.LIVE -> HomeScreen(
                     isTelevision = isTelevision,
                     hasSources = hasSources,
@@ -182,6 +213,7 @@ fun MainScreen(
                     onRefresh = onRefresh,
                     onPlayCatchup = onPlayCatchup,
                 )
+                */
                 Tab.MOVIES -> MoviesScreen(
                     onOpenMovie = onOpenMovie,
                     onResume = onResume,
@@ -189,6 +221,7 @@ fun MainScreen(
                     hasSources = hasSources,
                     isSyncing = isSyncing,
                 )
+                /*
                 Tab.SHOWS -> SeriesScreen(
                     onOpenSeries = onOpenSeries,
                     onResume = onResume,
@@ -196,6 +229,7 @@ fun MainScreen(
                     hasSources = hasSources,
                     isSyncing = isSyncing,
                 )
+                */
                 Tab.RECORDINGS -> RecordingsScreen(onPlay = onPlayRecording)
             }
         }
@@ -262,6 +296,8 @@ private fun NavRail(
     onOpenSettings: () -> Unit,
     onOpenProfiles: () -> Unit,
     activeProfileName: String,
+    onCloseSidebar: () -> Unit = {},
+    isSmallScreen: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // Expand whenever focus is anywhere inside the rail; collapse back to icons when it leaves.
@@ -302,6 +338,13 @@ private fun NavRail(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            // Close button on small screens
+            if (isSmallScreen) {
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = onCloseSidebar) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Close menu")
+                }
             }
         }
         Spacer(Modifier.height(8.dp))

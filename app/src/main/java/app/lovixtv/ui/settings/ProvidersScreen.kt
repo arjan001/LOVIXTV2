@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
+import app.lovixtv.core.LovixDefaults
 import app.lovixtv.data.model.LiveStreamFormat
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
@@ -85,9 +86,12 @@ fun ProvidersScreen(
             modifier = Modifier.widthIn(max = 760.dp),
         ) {
             items(ui.sources, key = { it.id }) { source ->
+                val isDefaultLovix = source.kind == SourceKind.LOVIX &&
+                    LovixDefaults.providers.any { it.serverUrl == source.url }
                 ProviderRow(
                     source = source,
                     confirming = pendingRemove?.id == source.id,
+                    isDefault = isDefaultLovix,
                     onEdit = { onEditSource(source) },
                     onAskRemove = { pendingRemove = source },
                     onCancelRemove = { pendingRemove = null },
@@ -106,6 +110,7 @@ fun ProvidersScreen(
 private fun ProviderRow(
     source: Source,
     confirming: Boolean,
+    isDefault: Boolean = false,
     onEdit: () -> Unit,
     onAskRemove: () -> Unit,
     onCancelRemove: () -> Unit,
@@ -122,7 +127,7 @@ private fun ProviderRow(
                 Column(Modifier.weight(1f)) {
                     Text(source.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "${source.kind.name} · ${hostOf(source.url)}",
+                        "${source.kind.name} · ${hostOf(source.url)}" + if (isDefault) " (Default)" else "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -138,8 +143,17 @@ private fun ProviderRow(
                     TextButton(onClick = onConfirmRemove) { Text(stringResource(R.string.providers_yes_remove)) }
                     TextButton(onClick = onCancelRemove) { Text(stringResource(R.string.common_cancel)) }
                 } else {
-                    TextButton(onClick = onEdit) { Text(stringResource(R.string.common_edit)) }
-                    TextButton(onClick = onAskRemove) { Text(stringResource(R.string.common_remove)) }
+                    // Default LOVIX providers cannot be edited or removed
+                    if (!isDefault) {
+                        TextButton(onClick = onEdit) { Text(stringResource(R.string.common_edit)) }
+                        TextButton(onClick = onAskRemove) { Text(stringResource(R.string.common_remove)) }
+                    } else {
+                        Text(
+                            "Built-in",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 

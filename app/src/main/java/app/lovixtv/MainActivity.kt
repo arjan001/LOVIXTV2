@@ -55,6 +55,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import app.lovixtv.core.AppSettings
+import app.lovixtv.core.LovixDefaults
 import app.lovixtv.core.ServiceLocator
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.ui.MainScreen
