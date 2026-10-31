@@ -325,17 +325,21 @@ data class Movie(
     val backdropUrl: String? = null,
     /** Billed cast, provider-formatted (usually comma-separated). */
     val cast: String? = null,
-    /** Cast members with images (from LOVIX enrichment). Not persisted to DB - loaded from API at runtime. */
-    @Ignore val castMembers: List<CastMember>? = null,
-    /** Tags/categories for filtering (from LOVIX enrichment). Not persisted to DB - loaded from API at runtime. */
-    @Ignore val tags: List<String>? = null,
     /** Genre(s) as the provider labels them; often comma- or pipe-separated (see repo grouping). */
     val genre: String? = null,
     /** TMDB id, stored only — resolved/used by a later agent. Coerced to String (panels vary). */
     val tmdbId: String? = null,
     /** Director(s), provider-formatted. Movies only. */
     val director: String? = null,
-)
+) {
+    /** Cast members with images (from LOVIX enrichment). Not persisted to DB - loaded from API at runtime. */
+    @Ignore
+    var castMembers: List<CastMember>? = null
+    
+    /** Tags/categories for filtering (from LOVIX enrichment). Not persisted to DB - loaded from API at runtime. */
+    @Ignore
+    var tags: List<String>? = null
+}
 
 @Entity(
     tableName = "series",
