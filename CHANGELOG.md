@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.10
+
+- **Fixed Kotlin serialization build error** — the app now compiles correctly by using explicit
+  `ListSerializer` for Person and Tag JSON serialization, resolving the persistent "Cannot infer
+  type" and "SerializationStrategy was expected" compilation errors.
+
 ## 1.0.9
 
 - **Cast & Tags shelves restored** — the Movies home screen now displays cast member photos in
