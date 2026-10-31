@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
@@ -69,6 +70,7 @@ fun SettingsHubScreen(
     onOpenSync: () -> Unit,
     onOpenRecordings: () -> Unit,
     onOpenAbout: () -> Unit,
+    onLogout: () -> Unit,
     onBack: () -> Unit,
 ) {
     val entries = listOf(
@@ -82,6 +84,7 @@ fun SettingsHubScreen(
         HubEntry(Icons.Filled.Lock, stringResource(R.string.settings_parental_title), stringResource(R.string.settings_parental_subtitle), onOpenParental),
         HubEntry(Icons.Filled.Sync, stringResource(R.string.settings_sync_title), stringResource(R.string.settings_sync_subtitle), onOpenSync),
         HubEntry(Icons.Filled.Info, stringResource(R.string.settings_about_title), stringResource(R.string.settings_about_subtitle), onOpenAbout),
+        HubEntry(Icons.Filled.Logout, "Logout", "Sign out of your account", onLogout),
     )
 
     Column(

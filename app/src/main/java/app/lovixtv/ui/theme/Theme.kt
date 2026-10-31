@@ -17,27 +17,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * A deliberately dark, low-chroma palette.
+ * Dark theme matching LOVIX website - dark background with pink/red accents.
  *
  * This is a living-room app: it is looked at in a dark room, from three metres away, often
  * for hours. Bright surfaces and saturated accents that read well on a phone in daylight are
  * actively unpleasant on a 55" panel at night, so everything here is anchored near-black with
  * a single restrained accent used only for focus and selection.
  */
-private val Accent = Color(0xFF7C93FF)
-private val AccentDim = Color(0xFF4B5DB8)
+private val Accent = Color(0xFFFF6EA8)  // Lovix pink accent
+private val AccentDim = Color(0xFFC03E7E)  // Dimmed pink for containers
+private val AccentSecondary = Color(0xFFFF9EC4)  // Lighter pink for highlights
 
 private val DarkScheme = darkColorScheme(
     primary = Accent,
     onPrimary = Color(0xFF0A0C14),
     primaryContainer = AccentDim,
-    onPrimaryContainer = Color(0xFFE6EAFF),
-    secondary = Color(0xFF9AA3C0),
-    background = Color(0xFF07080C),
+    onPrimaryContainer = Color(0xFFFFD6E8),
+    secondary = AccentSecondary,
+    background = Color(0xFF0A0E16),  // Dark background (not navy)
     onBackground = Color(0xFFE8EAF0),
-    surface = Color(0xFF0D0F16),
+    surface = Color(0xFF0F141F),  // Slightly lighter surface
     onSurface = Color(0xFFE8EAF0),
-    surfaceVariant = Color(0xFF171A24),
+    surfaceVariant = Color(0xFF1A1F2B),
     onSurfaceVariant = Color(0xFFA8AEC0),
     outline = Color(0xFF2A2F3D),
     error = Color(0xFFFF6B6B),

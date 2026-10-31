@@ -415,6 +415,13 @@ private fun LovixTvApp(isTelevision: Boolean) {
                     onOpenSync = { navController.navigate(Routes.SYNC) },
                     onOpenRecordings = { navController.navigate(Routes.REC_SETTINGS) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onLogout = {
+                        // Clear all sources and return to setup
+                        sourcesViewModel.deleteAll()
+                        navController.navigate(Routes.ADD_SOURCE) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
