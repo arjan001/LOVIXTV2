@@ -113,6 +113,15 @@ data class Person(
     val gender: String? = null,
 )
 
+/**
+ * Individual cast member for a movie with image support.
+ */
+data class CastMember(
+    val name: String,
+    val imageUrl: String? = null,
+    val gender: String? = null,
+)
+
 @Entity(
     tableName = "categories",
     primaryKeys = ["sourceId", "id", "kind"],
@@ -315,6 +324,10 @@ data class Movie(
     val backdropUrl: String? = null,
     /** Billed cast, provider-formatted (usually comma-separated). */
     val cast: String? = null,
+    /** Cast members with images (from LOVIX enrichment). */
+    val castMembers: List<CastMember>? = null,
+    /** Tags/categories for filtering (from LOVIX enrichment). */
+    val tags: List<String>? = null,
     /** Genre(s) as the provider labels them; often comma- or pipe-separated (see repo grouping). */
     val genre: String? = null,
     /** TMDB id, stored only — resolved/used by a later agent. Coerced to String (panels vary). */

@@ -28,6 +28,7 @@ import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
 import app.lovixtv.data.repo.GenreGroup
+import android.util.Log
 import app.lovixtv.data.repo.MovieVariantGroup
 import app.lovixtv.data.repo.PersonTitle
 import app.lovixtv.data.repo.distinctByQuality
@@ -872,6 +873,12 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
     private val _seriesGenreRows = MutableStateFlow<List<GenreGroup<Series>>>(emptyList())
     val seriesGenreRows: StateFlow<List<GenreGroup<Series>>> = _seriesGenreRows.asStateFlow()
 
+    private val _people = MutableStateFlow<List<Person>>(emptyList())
+    val people: StateFlow<List<Person>> = _people.asStateFlow()
+
+    private val _tags = MutableStateFlow<List<Tag>>(emptyList())
+    val tags: StateFlow<List<Tag>> = _tags.asStateFlow()
+
     /** The (profile, catalogue) the computed rows were last built for — the redundant-reload guard. */
     private data class HomeFeedsKey(val profileId: Long, val movieCount: Int, val seriesCount: Int)
 
@@ -934,6 +941,16 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                 _seriesGenreRows.value = runCatching {
                     graph.catalogRepository.seriesByGenreFrom(allSeries)
                 }.getOrDefault(emptyList())
+
+                // Load people and tags from the first LOVIX source (Phase 2 UI shelves)
+                val lovixSource = runCatching { graph.sourceRepository.enabled().firstOrNull { it.kind == SourceKind.LOVIX } }.getOrNull()
+                if (lovixSource != null) {
+                    runCatching {
+                        val result = graph.catalogRepository.syncLovixBootstrap(lovixSource)
+                        _people.value = result.people
+                        _tags.value = result.tags
+                    }.onFailure { Log.w("VodViewModel", "Failed to load people/tags", it) }
+                }
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)
             }

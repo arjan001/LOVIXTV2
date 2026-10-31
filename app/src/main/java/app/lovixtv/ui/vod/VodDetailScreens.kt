@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
+import app.lovixtv.data.model.CastMember
 import app.lovixtv.data.model.Episode
 import app.lovixtv.data.model.Movie
 import app.lovixtv.data.model.Series
@@ -145,8 +146,10 @@ fun MovieDetailScreen(
             DetailInfo(
                 plot = m.plot,
                 cast = m.cast,
+                castMembers = m.castMembers,
                 director = m.director,
                 genre = m.genre,
+                tags = m.tags,
                 onOpenPerson = onOpenPerson,
             )
         }
@@ -492,8 +495,10 @@ private fun HeroPosterCard(posterUrl: String?, title: String) {
 private fun DetailInfo(
     plot: String?,
     cast: String?,
+    castMembers: List<CastMember>?,
     director: String?,
     genre: String?,
+    tags: List<String>?,
     onOpenPerson: (String) -> Unit,
 ) {
     val genres = remember(genre) { splitNames(genre, ',', '|', '/') }
@@ -505,8 +510,27 @@ private fun DetailInfo(
             ChipRow(genres.size, key = { genres[it] }) { GenreChip(genres[it]) }
             Spacer(Modifier.height(16.dp))
         }
+        // Phase 2: Tags chips
+        if (!tags.isNullOrEmpty()) {
+            ChipRow(tags.size, key = { tags[it] }) { TagChip(tags[it]) }
+            Spacer(Modifier.height(16.dp))
+        }
         plot?.takeIf { it.isNotBlank() }?.let { LabeledBlock(stringResource(R.string.vod_synopsis), it) }
-        if (castList.isNotEmpty()) {
+        // Phase 2: Cast with images
+        if (!castMembers.isNullOrEmpty()) {
+            Spacer(Modifier.height(18.dp))
+            SectionLabel(stringResource(R.string.vod_cast))
+            Spacer(Modifier.height(8.dp))
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(castMembers, key = { it.name }) { member ->
+                    CastMemberCard(member, onOpenPerson)
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+        } else if (castList.isNotEmpty()) {
             Spacer(Modifier.height(18.dp))
             SectionLabel(stringResource(R.string.vod_cast))
             Spacer(Modifier.height(8.dp))
@@ -562,6 +586,86 @@ private fun ChipRow(count: Int, key: (Int) -> Any, chip: @Composable (Int) -> Un
     ) {
         items(count, key = key) { chip(it) }
     }
+}
+
+// ---- Phase 2: Cast Member Card with Image -------------------------------------------------
+
+@Composable
+private fun CastMemberCard(member: CastMember, onOpenPerson: (String) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .width(80.dp)
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onOpenPerson(member.name) }
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                    else Modifier,
+                ),
+        ) {
+            if (member.imageUrl != null) {
+                AsyncImage(
+                    model = member.imageUrl,
+                    contentDescription = member.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                // Fallback: show initials if no image
+                Text(
+                    member.name.take(2).uppercase(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            member.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+    }
+}
+
+// ---- Phase 2: Tag Chip -----------------------------------------------------------------------
+
+@Composable
+private fun TagChip(tag: String) {
+    var focused by remember { mutableStateOf(false) }
+    val bg = when {
+        focused -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val fg = when {
+        focused -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Text(
+        tag,
+        style = MaterialTheme.typography.labelLarge,
+        color = fg,
+        maxLines = 1,
+        modifier = Modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 /** A static genre pill. */

@@ -55,8 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.Movie
+import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.Series
 import app.lovixtv.data.model.Source
+import app.lovixtv.data.model.Tag
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.ui.VodViewModel
 import coil.compose.AsyncImage
@@ -74,6 +76,7 @@ fun MoviesScreen(
     onOpenSearch: () -> Unit,
     hasSources: Boolean,
     isSyncing: Boolean,
+    onOpenPerson: (String) -> Unit = {},
     viewModel: VodViewModel = viewModel(),
 ) {
     val categories by viewModel.movieCategories.collectAsState()
@@ -85,6 +88,8 @@ fun MoviesScreen(
     val vodLoading by viewModel.vodLoading.collectAsState()
     val sources by viewModel.sources.collectAsState()
     val selectedSource by viewModel.selectedVodSource.collectAsState()
+    val people by viewModel.people.collectAsState()
+    val tags by viewModel.tags.collectAsState()
 
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed
     // home rows (recommended, by-genre) on open too — cheap, and covers a library already on disk.
@@ -115,6 +120,14 @@ fun MoviesScreen(
             onSelectHome = { browseCategory = null },
             onSelectCategory = { id -> browseCategory = id; viewModel.selectMovieCategory(id) },
         )
+        // Phase 2: Cast/Creators shelf below navbar
+        if (people.isNotEmpty()) {
+            CastShelf(people = people, onOpenPerson = onOpenPerson)
+        }
+        // Phase 2: Tags shelf with counts
+        if (tags.isNotEmpty()) {
+            TagsShelf(tags = tags)
+        }
         // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
         // unambiguously — the same reason Live TV weights its guide grid.
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -670,3 +683,134 @@ private val POSTER_WIDTH = 140.dp
 
 /** Rating to one decimal place, locale-independent (the "★" is drawn beside it). */
 internal fun formatRating(rating: Double): String = String.format(java.util.Locale.US, "%.1f", rating)
+
+// ---- Phase 2: Cast/Creators Shelf -----------------------------------------------------------
+
+@Composable
+private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {}) {
+    Column(Modifier.fillMaxWidth()) {
+        SectionHeader("Cast & Creators")
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(people, key = { it.id }) { person ->
+                CastCard(person, onOpenPerson)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "castScale")
+    Column(
+        Modifier
+            .width(100.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = { onOpenPerson(person.name) })
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    if (focused) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                    else Modifier,
+                ),
+        ) {
+            if (person.imageUrl != null) {
+                AsyncImage(
+                    model = person.imageUrl,
+                    contentDescription = person.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                // Fallback: show initials if no image
+                Text(
+                    person.name.take(2).uppercase(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            person.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        if (person.count > 0) {
+            Text(
+                "${person.count} films",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
+    }
+}
+
+// ---- Phase 2: Tags Shelf -----------------------------------------------------------------------
+
+@Composable
+private fun TagsShelf(tags: List<Tag>) {
+    Column(Modifier.fillMaxWidth()) {
+        SectionHeader("Tags")
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(tags, key = { it.name }) { tag ->
+                TagChip(tag)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagChip(tag: Tag) {
+    var focused by remember { mutableStateOf(false) }
+    val bg = when {
+        focused -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val fg = when {
+        focused -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(
+        Modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .clickable(onClick = {})
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            tag.name,
+            style = MaterialTheme.typography.labelLarge,
+            color = fg,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "${tag.count}",
+            style = MaterialTheme.typography.labelSmall,
+            color = fg.copy(alpha = 0.7f),
+        )
+    }
+}

@@ -207,6 +207,11 @@ fun PlayerScreen(
     val rootFocus = remember { FocusRequester() }
     val listFocus = remember { FocusRequester() }
 
+    // Long-press detection for remote control
+    var leftPressStart by remember { mutableStateOf(0L) }
+    var rightPressStart by remember { mutableStateOf(0L) }
+    val LONG_PRESS_THRESHOLD = 500L // 500ms for long press
+
     // The channel list you were browsing, for channel up/down and the in-player list. Snapshotted
     // on entry so it doesn't shift under you mid-session.
     val queue = remember { PlaybackQueue.items }
@@ -400,7 +405,56 @@ fun PlayerScreen(
             },
     ) {
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .onPreviewKeyEvent { keyEvent ->
+                    // Remote control key handling with long-press detection
+                    when (keyEvent.key) {
+                        Key.DirectionCenter -> {
+                            // OK button: toggle play/pause
+                            if (keyEvent.type == KeyEventType.KeyDown) {
+                                controller.togglePlayPause()
+                                interaction++
+                                true
+                            } else false
+                        }
+                        Key.DirectionLeft -> {
+                            when (keyEvent.type) {
+                                KeyEventType.KeyDown -> {
+                                    leftPressStart = System.currentTimeMillis()
+                                    true
+                                }
+                                KeyEventType.KeyUp -> {
+                                    val pressDuration = System.currentTimeMillis() - leftPressStart
+                                    val seekAmount = if (pressDuration >= LONG_PRESS_THRESHOLD) 30000 else 10000
+                                    controller.seekTo(controller.player.currentPosition - seekAmount)
+                                    leftPressStart = 0L
+                                    interaction++
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                        Key.DirectionRight -> {
+                            when (keyEvent.type) {
+                                KeyEventType.KeyDown -> {
+                                    rightPressStart = System.currentTimeMillis()
+                                    true
+                                }
+                                KeyEventType.KeyUp -> {
+                                    val pressDuration = System.currentTimeMillis() - rightPressStart
+                                    val seekAmount = if (pressDuration >= LONG_PRESS_THRESHOLD) 30000 else 10000
+                                    controller.seekTo(controller.player.currentPosition + seekAmount)
+                                    rightPressStart = 0L
+                                    interaction++
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                        else -> false
+                    }
+                },
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = controller.player

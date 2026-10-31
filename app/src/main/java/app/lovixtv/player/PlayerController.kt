@@ -352,6 +352,14 @@ class PlayerController(
         if (player.isCurrentMediaItemSeekable) player.seekForward()
     }
 
+    fun seekTo(positionMs: Long) {
+        if (player.isCurrentMediaItemSeekable) player.seekTo(positionMs)
+    }
+
+    fun togglePlayPause() {
+        player.playWhenReady = !player.playWhenReady
+    }
+
     val isSeekable: Boolean get() = player.isCurrentMediaItemSeekable
 
     private fun firstSupportedIndex(group: Tracks.Group): Int {

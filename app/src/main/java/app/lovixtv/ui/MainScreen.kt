@@ -72,6 +72,7 @@ import app.lovixtv.data.model.Series
 import app.lovixtv.ui.channels.HomeScreen
 import app.lovixtv.ui.recordings.RecordingsScreen
 import app.lovixtv.ui.vod.MoviesScreen
+import app.lovixtv.ui.vod.PersonScreen
 import app.lovixtv.ui.vod.SeriesScreen
 
 /**
@@ -116,6 +117,9 @@ fun MainScreen(
 
     // Sidebar state: on small screens, default to closed; on TV/tablet, always open
     var sidebarOpen by remember { mutableStateOf(!isSmallScreen) }
+
+    // Person screen navigation state
+    var personName by remember { mutableStateOf<String?>(null) }
 
     // Content-type toggles: a switched-off type has its tab hidden here (and its sync skipped in
     // CatalogRepository). Recordings is never a content type, so it always stays — which also means
@@ -205,13 +209,25 @@ fun MainScreen(
 
             when (tab) {
                 // LOVIX VOD-only mode: Only Movies tab is active
-                Tab.MOVIES -> MoviesScreen(
-                    onOpenMovie = onOpenMovie,
-                    onResume = onResume,
-                    onOpenSearch = onOpenSearch,
-                    hasSources = hasSources,
-                    isSyncing = isSyncing,
-                )
+                Tab.MOVIES -> {
+                    if (personName != null) {
+                        PersonScreen(
+                            name = personName!!,
+                            onOpenMovie = onOpenMovie,
+                            onOpenSeries = onOpenSeries,
+                            onBack = { personName = null },
+                        )
+                    } else {
+                        MoviesScreen(
+                            onOpenMovie = onOpenMovie,
+                            onResume = onResume,
+                            onOpenSearch = onOpenSearch,
+                            hasSources = hasSources,
+                            isSyncing = isSyncing,
+                            onOpenPerson = { personName = it },
+                        )
+                    }
+                }
             }
         }
       }

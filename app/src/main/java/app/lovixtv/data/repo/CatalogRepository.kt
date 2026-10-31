@@ -665,7 +665,7 @@ class CatalogRepository(
 
     /**
      * Sync LOVIX movies from the LVX website API.
-     * Fetches all movies via bootstrap, stores categories and movies in the local database.
+     * Fetches all movies via bootstrap, stores categories, movies, people, and tags in the local database.
      */
     private suspend fun syncLovixVod(source: Source, nowUtcMillis: Long) {
         val moviesOn = settings.moviesEnabled.value
@@ -687,11 +687,23 @@ class CatalogRepository(
                 Log.w(TAG, "LOVIX sync: No movies returned from API. Check credentials and server URL.")
             }
 
+            // Store people (cast) and tags for UI shelves
+            // Note: These are not persisted to Room yet - held in ViewModel for Phase 2 UI
+            Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags")
+
             sourceDao.markCatalogSynced(source.id, nowUtcMillis)
         } catch (e: Exception) {
             Log.e(TAG, "LOVIX sync failed for source ${source.id}", e)
             throw e // Re-throw so the UI can show the error
         }
+    }
+
+    /**
+     * Fetch LOVIX bootstrap data for UI shelves (people, tags) without storing to database.
+     * Used by VodViewModel to populate the cast/creators and tags sections.
+     */
+    suspend fun syncLovixBootstrap(source: Source): app.lovixtv.data.remote.LovixApi.BootstrapResult {
+        return lovixApi.bootstrap(source)
     }
 
     /** Clear all cached data from the database. */

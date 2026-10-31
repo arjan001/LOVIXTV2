@@ -98,6 +98,13 @@ fun SearchScreen(
         else people.filter { it.name.contains(query, ignoreCase = true) }
     }
 
+    // Autocomplete suggestions: top 5 matching movie titles
+    val autocompleteSuggestions = remember(query, movieResults) {
+        if (query.length >= 2) {
+            movieResults.take(5).map { it.displayTitle }
+        } else emptyList()
+    }
+
     LaunchedEffect(query) {
         viewModel.setSearchQuery(query)
         vodViewModel.setVodSearchQuery(query)
@@ -120,6 +127,31 @@ fun SearchScreen(
             )
             Spacer(Modifier.weight(1f))
             OutlinedButton(onClick = onBack) { Text(stringResource(R.string.common_done)) }
+        }
+
+        // Autocomplete suggestions dropdown
+        if (autocompleteSuggestions.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(8.dp)
+            ) {
+                autocompleteSuggestions.forEach { suggestion ->
+                    Text(
+                        suggestion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { query = suggestion }
+                            .padding(vertical = 6.dp, horizontal = 12.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
 
         Spacer(Modifier.height(20.dp))

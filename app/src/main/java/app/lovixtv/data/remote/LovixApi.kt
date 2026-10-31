@@ -12,6 +12,7 @@
  */
 package app.lovixtv.data.remote
 
+import app.lovixtv.data.model.CastMember
 import app.lovixtv.data.model.Category
 import app.lovixtv.data.model.Movie
 import app.lovixtv.data.model.Person
@@ -210,6 +211,8 @@ class LovixApi(
                 addedMillis = 0L,
                 backdropUrl = obj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
                 cast = joinPeopleList(obj["people"]),
+                castMembers = parseCastMembers(obj["cast"]?.jsonArray, source),
+                tags = parseTagsList(obj["tags"]?.jsonArray),
                 genre = joinGenreList(obj["genre"]),
             )
         }
@@ -295,6 +298,35 @@ class LovixApi(
             val count = obj["count"]?.toIntOrNull() ?: 0
 
             Tag(name = name, count = count)
+        }
+    }
+
+    private fun parseCastMembers(castArray: JsonArray?, source: Source): List<CastMember>? {
+        if (castArray == null) return null
+        return castArray.mapNotNull { element ->
+            val obj = element.jsonObjectOrNull ?: return@mapNotNull null
+            val name = obj["name"]?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            val imageUrl = obj["image"]?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?.let { if (it.startsWith("http")) it else "${source.url.trimEnd('/')}/$it" }
+            val gender = obj["gender"]?.contentOrNull
+
+            CastMember(
+                name = name,
+                imageUrl = imageUrl,
+                gender = gender,
+            )
+        }
+    }
+
+    private fun parseTagsList(tagsArray: JsonArray?): List<String>? {
+        if (tagsArray == null) return null
+        return tagsArray.mapNotNull { element ->
+            when (element) {
+                is JsonObject -> element["name"]?.contentOrNull?.takeIf { it.isNotBlank() }
+                is JsonPrimitive -> element.contentOrNull?.takeIf { it.isNotBlank() }
+                else -> null
+            }
         }
     }
 

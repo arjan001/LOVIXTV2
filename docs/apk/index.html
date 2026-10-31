@@ -68,8 +68,18 @@
       var apk = (release.assets || []).filter(function (a) { return /\.apk$/i.test(a.name); })[0];
       if (!apk) { fail("The latest release has no APK attached."); return; }
 
+      // Format release date and time
+      var publishedAt = release.published_at ? new Date(release.published_at) : null;
+      var dateStr = publishedAt ? publishedAt.toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric'
+      }) : '';
+      var timeStr = publishedAt ? publishedAt.toLocaleTimeString(undefined, {
+        hour: '2-digit', minute: '2-digit'
+      }) : '';
+      var dateTimeStr = dateStr && timeStr ? dateStr + ' at ' + timeStr : '';
+
       document.getElementById("detail").textContent =
-        "LOVIXTV " + (release.tag_name || "") + " — if nothing happens, use the link below.";
+        "LOVIXTV " + (release.tag_name || "") + (dateTimeStr ? " — Released " + dateTimeStr : "") + " — if nothing happens, use the link below.";
       document.getElementById("fallback").textContent = "Download manually";
       document.getElementById("fallback").href = apk.browser_download_url;
       location.replace(apk.browser_download_url);
