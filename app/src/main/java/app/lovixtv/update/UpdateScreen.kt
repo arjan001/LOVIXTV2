@@ -7,9 +7,12 @@ package app.lovixtv.update
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -19,9 +22,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.lovixtv.R
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,7 +54,20 @@ fun UpdateGate(viewModel: UpdateViewModel = viewModel()) {
             onDismissRequest = viewModel::dismiss,
             confirmButton = { TextButton(onClick = viewModel::install) { Text("Update") } },
             dismissButton = { TextButton(onClick = viewModel::dismiss) { Text("Later") } },
-            title = { Text("Update available") },
+            title = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.lovix_logo),
+                        contentDescription = "LOVIX Logo",
+                        modifier = Modifier.size(72.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                    Text("Update available")
+                }
+            },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Text("LOVIXTV ${s.update.versionName} is available. You have ${BuildConfig.VERSION_NAME}.")

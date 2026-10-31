@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+- **LOVIX logo in update dialog** — the update prompt now displays the LOVIX brand logo so users
+  recognize the app at a glance when updating.
+
 ## 1.0.4
 
 - **Prereleases included in update checks** — the app now detects beta and preview releases, not
