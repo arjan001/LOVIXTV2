@@ -79,12 +79,14 @@ import app.lovixtv.ui.vod.SeriesScreen
  * an icon strip and expands to show labels the moment focus lands in it — the TiviMate-style side
  * menu people asked for, instead of a top bar that ate a row of the guide. It overlays the content
  * rather than pushing it, so expanding the menu never reflows the guide underneath.
+ *
+ * LOVIX VOD-only mode: Only Movies tab is active. Live TV, Shows, and Recordings are hidden.
  */
 enum class Tab(val labelRes: Int, val icon: ImageVector) {
-    LIVE(R.string.nav_live_tv, Icons.Filled.LiveTv),
+    // LIVE(R.string.nav_live_tv, Icons.Filled.LiveTv),  // Hidden for LOVIX VOD-only
     MOVIES(R.string.nav_movies, Icons.Filled.Movie),
-    SHOWS(R.string.nav_shows, Icons.Filled.Tv),
-    RECORDINGS(R.string.nav_recordings, Icons.Filled.FiberManualRecord),
+    // SHOWS(R.string.nav_shows, Icons.Filled.Tv),  // Hidden for LOVIX VOD-only
+    // RECORDINGS(R.string.nav_recordings, Icons.Filled.FiberManualRecord),  // Hidden for LOVIX VOD-only
 }
 
 private val RAIL_COLLAPSED = 76.dp
@@ -118,7 +120,7 @@ fun MainScreen(
     // Content-type toggles: a switched-off type has its tab hidden here (and its sync skipped in
     // CatalogRepository). Recordings is never a content type, so it always stays — which also means
     // there is always at least one tab and never a blank shell, even with all three types off.
-    // LOVIX is VOD-only, so we hide Live TV and Shows tabs, keeping only Movies and Recordings.
+    // LOVIX is VOD-only, so we hide Live TV and Shows tabs, keeping only Movies.
     val context = LocalContext.current
     val settings = remember { AppSettings.get(context) }
     val liveEnabled by settings.liveEnabled.collectAsState()
@@ -126,15 +128,15 @@ fun MainScreen(
     val seriesEnabled by settings.seriesEnabled.collectAsState()
     val visibleTabs = remember(liveEnabled, moviesEnabled, seriesEnabled) {
         buildList {
-            // LOVIX VOD-only mode: only Movies and Recordings
+            // LOVIX VOD-only mode: only Movies
             // if (liveEnabled) add(Tab.LIVE)
             if (moviesEnabled) add(Tab.MOVIES)
             // if (seriesEnabled) add(Tab.SHOWS)
-            add(Tab.RECORDINGS)
+            // add(Tab.RECORDINGS)  // Hidden for LOVIX VOD-only
         }
     }
     // The default/home tab is the first visible one — Movies for LOVIX
-    val homeTab = visibleTabs.first()
+    val homeTab = visibleTabs.firstOrNull() ?: Tab.MOVIES
 
     var tab by remember { mutableStateOf(homeTab) }
 
@@ -202,18 +204,7 @@ fun MainScreen(
             }
 
             when (tab) {
-                // LOVIX VOD-only mode: Live TV and Shows tabs are hidden
-                /*
-                Tab.LIVE -> HomeScreen(
-                    isTelevision = isTelevision,
-                    hasSources = hasSources,
-                    isSyncing = isSyncing,
-                    onPlayChannel = onPlayChannel,
-                    onAddSource = onAddSource,
-                    onRefresh = onRefresh,
-                    onPlayCatchup = onPlayCatchup,
-                )
-                */
+                // LOVIX VOD-only mode: Only Movies tab is active
                 Tab.MOVIES -> MoviesScreen(
                     onOpenMovie = onOpenMovie,
                     onResume = onResume,
@@ -221,16 +212,6 @@ fun MainScreen(
                     hasSources = hasSources,
                     isSyncing = isSyncing,
                 )
-                /*
-                Tab.SHOWS -> SeriesScreen(
-                    onOpenSeries = onOpenSeries,
-                    onResume = onResume,
-                    onOpenSearch = onOpenSearch,
-                    hasSources = hasSources,
-                    isSyncing = isSyncing,
-                )
-                */
-                Tab.RECORDINGS -> RecordingsScreen(onPlay = onPlayRecording)
             }
         }
       }
@@ -356,7 +337,8 @@ private fun NavRail(
         Spacer(Modifier.height(1.dp).fillMaxWidth())
         Spacer(Modifier.weight(1f))
 
-        RailItem(Icons.Filled.Search, stringResource(R.string.nav_search), expanded, false, onOpenSearch)
+        // Search is at the top of the screen, not needed in sidebar
+        // RailItem(Icons.Filled.Search, stringResource(R.string.nav_search), expanded, false, onOpenSearch)
         RailItem(Icons.Filled.Person, activeProfileName, expanded, false, onOpenProfiles)
         RailItem(Icons.Filled.Settings, stringResource(R.string.nav_settings), expanded, false, onOpenSettings)
     }

@@ -76,12 +76,12 @@ fun SettingsHubScreen(
     val entries = listOf(
         HubEntry(Icons.Filled.Dns, stringResource(R.string.settings_providers_title), stringResource(R.string.settings_providers_subtitle), onOpenProviders),
         HubEntry(Icons.Filled.Extension, stringResource(R.string.settings_addons_title), stringResource(R.string.settings_addons_subtitle), onOpenAddons),
-        HubEntry(Icons.Filled.LiveTv, stringResource(R.string.settings_guide_title), stringResource(R.string.settings_guide_subtitle), onOpenGuide),
-        HubEntry(Icons.Filled.GridView, stringResource(R.string.common_channels), stringResource(R.string.settings_channels_subtitle), onOpenChannels),
-        HubEntry(Icons.Filled.PhoneAndroid, stringResource(R.string.settings_webmanager_title), stringResource(R.string.settings_webmanager_subtitle), onOpenWebManager),
+        // HubEntry(Icons.Filled.LiveTv, stringResource(R.string.settings_guide_title), stringResource(R.string.settings_guide_subtitle), onOpenGuide),  // Not needed for VOD-only
+        // HubEntry(Icons.Filled.GridView, stringResource(R.string.common_channels), stringResource(R.string.settings_channels_subtitle), onOpenChannels),  // Not needed for VOD-only
+        // HubEntry(Icons.Filled.PhoneAndroid, stringResource(R.string.settings_webmanager_title), stringResource(R.string.settings_webmanager_subtitle), onOpenWebManager),  // Not needed for VOD-only
         HubEntry(Icons.Filled.Tune, stringResource(R.string.settings_display_title), stringResource(R.string.settings_display_subtitle), onOpenDisplay),
-        HubEntry(Icons.Filled.Storage, stringResource(R.string.settings_recording_title), stringResource(R.string.settings_recording_subtitle), onOpenRecordings),
-        HubEntry(Icons.Filled.Lock, stringResource(R.string.settings_parental_title), stringResource(R.string.settings_parental_subtitle), onOpenParental),
+        // HubEntry(Icons.Filled.Storage, stringResource(R.string.settings_recording_title), stringResource(R.string.settings_recording_subtitle), onOpenRecordings),  // Not needed for VOD-only
+        // HubEntry(Icons.Filled.Lock, stringResource(R.string.settings_parental_title), stringResource(R.string.settings_parental_subtitle), onOpenParental),  // Not needed for VOD-only
         HubEntry(Icons.Filled.Sync, stringResource(R.string.settings_sync_title), stringResource(R.string.settings_sync_subtitle), onOpenSync),
         HubEntry(Icons.Filled.Info, stringResource(R.string.settings_about_title), stringResource(R.string.settings_about_subtitle), onOpenAbout),
         HubEntry(Icons.Filled.Logout, "Logout", "Sign out of your account", onLogout),

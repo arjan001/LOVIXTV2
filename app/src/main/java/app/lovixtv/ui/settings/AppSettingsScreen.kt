@@ -112,6 +112,8 @@ fun AppSettingsScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.height(16.dp))
 
+        // Content toggles hidden for LOVIX VOD-only mode
+        /*
         SettingsSection(stringResource(R.string.settings_section_content)) {
             Text(
                 stringResource(R.string.settings_content_note),
@@ -141,6 +143,7 @@ fun AppSettingsScreen(onBack: () -> Unit) {
                 onRefresh = onRefreshContent,
             )
         }
+        */
 
         Spacer(Modifier.height(16.dp))
 
@@ -162,6 +165,8 @@ fun AppSettingsScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.height(16.dp))
 
+        // Guide settings hidden for LOVIX VOD-only mode
+        /*
         SettingsSection(stringResource(R.string.settings_section_guide)) {
             Text(
                 stringResource(R.string.settings_channel_layout_title),
@@ -189,6 +194,7 @@ fun AppSettingsScreen(onBack: () -> Unit) {
                 onToggle = settings::setGuidePreviewSound,
             )
         }
+        */
 
         Spacer(Modifier.height(16.dp))
 
@@ -262,18 +268,21 @@ private fun TmdbKeySection(settings: AppSettings) {
 }
 
 /**
- * The UI languages OpenTV ships translations for, each labelled with its own endonym. The tag is
+ * The UI languages LOVIX ships translations for, each labelled with its own endonym. The tag is
  * both the stored language tag and the resource qualifier (values-<tag>), so adding a language is
  * just a new `values-xx/strings.xml` plus a line here.
+ *
+ * LOVIX focuses on EN, FR, ES, NL for subtitle translation support.
  */
 private val LovixTvLanguages: List<Pair<String, String>> = listOf(
     "en" to "English",
     "es" to "Español",
     "fr" to "Français",
+    "nl" to "Nederlands",
+    // Other languages available but not primary focus for LOVIX
     "de" to "Deutsch",
     "it" to "Italiano",
     "pt" to "Português",
-    "nl" to "Nederlands",
     "pl" to "Polski",
     "ru" to "Русский",
     "tr" to "Türkçe",
