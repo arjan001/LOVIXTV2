@@ -186,7 +186,7 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deleteAll() {
         viewModelScope.launch {
-            for (source in graph.sourceRepository.observeAll().first()) {
+            for (source in graph.sourceRepository.enabled()) {
                 graph.catalogRepository.deleteSource(source.id)
             }
         }
