@@ -128,15 +128,15 @@ fun MainScreen(
     val seriesEnabled by settings.seriesEnabled.collectAsState()
     val visibleTabs = remember(liveEnabled, moviesEnabled, seriesEnabled) {
         buildList {
-            // LOVIX VOD-only mode: only Movies
+            // LOVIX VOD-only mode: always show Movies tab
+            add(Tab.MOVIES)
             // if (liveEnabled) add(Tab.LIVE)
-            if (moviesEnabled) add(Tab.MOVIES)
             // if (seriesEnabled) add(Tab.SHOWS)
             // add(Tab.RECORDINGS)  // Hidden for LOVIX VOD-only
         }
     }
     // The default/home tab is the first visible one — Movies for LOVIX
-    val homeTab = visibleTabs.firstOrNull() ?: Tab.MOVIES
+    val homeTab = visibleTabs.first()
 
     var tab by remember { mutableStateOf(homeTab) }
 
