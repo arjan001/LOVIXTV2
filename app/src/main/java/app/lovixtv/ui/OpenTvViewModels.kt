@@ -184,6 +184,14 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { graph.catalogRepository.deleteSource(source.id) }
     }
 
+    fun deleteAll() {
+        viewModelScope.launch {
+            for (source in graph.sourceRepository.observeAll().first()) {
+                graph.catalogRepository.deleteSource(source.id)
+            }
+        }
+    }
+
     /**
      * Change an Xtream source's live-stream container. The repository rewrites the source's live
      * channel URLs in place, so the switch takes effect without a re-sync; the observed source list

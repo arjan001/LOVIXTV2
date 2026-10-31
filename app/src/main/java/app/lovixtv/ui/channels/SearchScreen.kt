@@ -318,25 +318,26 @@ private fun PersonResultRow(person: Person) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AsyncImage(
-            model = person.imageUrl,
-            contentDescription = person.name,
-            modifier = Modifier.size(width = 48.dp, height = 48.dp).clip(RoundedCornerShape(24.dp)),
-            error = {
-                // Fallback when image fails to load
-                Box(
-                    Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        person.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-        )
+        if (person.imageUrl != null) {
+            AsyncImage(
+                model = person.imageUrl,
+                contentDescription = person.name,
+                modifier = Modifier.size(width = 48.dp, height = 48.dp).clip(RoundedCornerShape(24.dp)),
+                error = remember { coil.compose.rememberAsyncImagePainter(androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)) },
+            )
+        } else {
+            Box(
+                Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    person.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(person.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
