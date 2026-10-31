@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3
+
+- **Fixed compilation errors** that prevented the app from building — LoginScreen import and
+  VodDetailScreens model references are now correct.
+- **Fixed resource translation errors** — 120 lint errors from 30 locale files referencing string
+  keys missing from the default English locale are resolved.
+- **Stabilized CI builds** — stale Gradle build cache no longer causes false compilation errors
+  on continuous integration.
+
 ## 0.11.8
 
 - **Edit a saved provider.** Settings → Providers now has an **Edit** button on each provider, so you
