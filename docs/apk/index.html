@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
-  This file is part of OpenTV.
-  Copyright (C) 2026 The OpenTV Contributors
+  This file is part of LOVIXTV.
+  Copyright (C) 2026 The LOVIXTV Contributors
   Licensed under the GNU General Public License v3.0 or later.
 
   A permanent short address that always points at the newest APK, so what someone types into
@@ -14,7 +14,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Downloading OpenTV…</title>
+<title>Downloading LOVIXTV…</title>
 <style>
   body {
     margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -50,7 +50,7 @@
 
   var owner = host.replace(/\.github\.io$/i, "");
   var repo = segments.length ? segments[0] : owner + ".github.io";
-  var api = "https://api.github.com/repos/" + owner + "/" + repo + "/releases/latest";
+  var api = "https://api.github.com/repos/" + owner + "/" + repo + "/releases/tags/latest";
 
   function fail(message) {
     document.getElementById("headline").textContent = "No build available";
@@ -69,7 +69,7 @@
       if (!apk) { fail("The latest release has no APK attached."); return; }
 
       document.getElementById("detail").textContent =
-        "OpenTV " + (release.tag_name || "") + " — if nothing happens, use the link below.";
+        "LOVIXTV " + (release.tag_name || "") + " — if nothing happens, use the link below.";
       document.getElementById("fallback").textContent = "Download manually";
       document.getElementById("fallback").href = apk.browser_download_url;
       location.replace(apk.browser_download_url);
