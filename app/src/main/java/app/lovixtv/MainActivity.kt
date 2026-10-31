@@ -426,13 +426,8 @@ private fun LovixTvApp(isTelevision: Boolean) {
                 SettingsHubScreen(
                     onOpenProviders = { navController.navigate(Routes.PROVIDERS) },
                     onOpenAddons = { navController.navigate(Routes.ADDONS) },
-                    // onOpenGuide = { navController.navigate(Routes.EPG_SETTINGS) },  // Not needed for VOD-only
-                    // onOpenChannels = { navController.navigate(Routes.CHANNELS) },  // Not needed for VOD-only
-                    // onOpenWebManager = { navController.navigate(Routes.WEB_MANAGER) },  // Not needed for VOD-only
                     onOpenDisplay = { navController.navigate(Routes.APP_SETTINGS) },
-                    // onOpenParental = { navController.navigate(Routes.PARENTAL) },  // Not needed for VOD-only
                     onOpenSync = { navController.navigate(Routes.SYNC) },
-                    // onOpenRecordings = { navController.navigate(Routes.REC_SETTINGS) },  // Not needed for VOD-only
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onLogout = {
                         // Clear all sources and return to setup

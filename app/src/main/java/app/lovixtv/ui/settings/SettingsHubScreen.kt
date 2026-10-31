@@ -62,13 +62,8 @@ import app.lovixtv.R
 fun SettingsHubScreen(
     onOpenProviders: () -> Unit,
     onOpenAddons: () -> Unit,
-    onOpenGuide: () -> Unit,
-    onOpenChannels: () -> Unit,
-    onOpenWebManager: () -> Unit,
     onOpenDisplay: () -> Unit,
-    onOpenParental: () -> Unit,
     onOpenSync: () -> Unit,
-    onOpenRecordings: () -> Unit,
     onOpenAbout: () -> Unit,
     onLogout: () -> Unit,
     onBack: () -> Unit,
