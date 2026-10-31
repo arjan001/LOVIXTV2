@@ -279,12 +279,10 @@ class PlayerController(
             _state.value = State.Buffering(request.title)
 
             val subtitleConfigs = request.subtitleTracks.map { (language, subtitleUrl) ->
-                MediaItem.SubtitleConfiguration(
-                    Uri.parse(subtitleUrl),
-                    androidx.media3.common.MimeTypes.APPLICATION_SUBRIP,
-                    language,
-                    androidx.media3.common.SubtitleConfiguration.RoleFlags.SUBTITLES,
-                )
+                MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleUrl))
+                    .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                    .setLanguage(language)
+                    .build()
             }
 
             val mediaItem = MediaItem.Builder()
