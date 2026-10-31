@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -127,6 +128,7 @@ fun AddSourceScreen(
         SourceKind.XTREAM -> username.isNotBlank() && password.isNotBlank()
         SourceKind.M3U -> true
         SourceKind.STALKER -> mac.isNotBlank()
+        SourceKind.LOVIX -> username.isNotBlank() && password.isNotBlank()
     }
 
     Column(
@@ -169,6 +171,11 @@ fun AddSourceScreen(
                     onClick = { kind = SourceKind.STALKER },
                     label = { Text(stringResource(R.string.onboarding_stalker_portal)) },
                 )
+                FilterChip(
+                    selected = kind == SourceKind.LOVIX,
+                    onClick = { kind = SourceKind.LOVIX },
+                    label = { Text("LOVIX") },
+                )
             }
 
             Spacer(Modifier.height(20.dp))
@@ -191,6 +198,7 @@ fun AddSourceScreen(
                             SourceKind.XTREAM -> stringResource(R.string.onboarding_server_address)
                             SourceKind.M3U -> stringResource(R.string.onboarding_playlist_url)
                             SourceKind.STALKER -> stringResource(R.string.onboarding_portal_url)
+                            SourceKind.LOVIX -> stringResource(R.string.onboarding_server_address)
                         },
                     )
                 },
@@ -200,6 +208,7 @@ fun AddSourceScreen(
                             SourceKind.XTREAM -> stringResource(R.string.onboarding_server_help)
                             SourceKind.M3U -> stringResource(R.string.onboarding_playlist_help)
                             SourceKind.STALKER -> stringResource(R.string.onboarding_portal_help)
+                            SourceKind.LOVIX -> stringResource(R.string.onboarding_server_help)
                         },
                     )
                 },
@@ -209,7 +218,7 @@ fun AddSourceScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            if (kind == SourceKind.XTREAM) {
+            if (kind == SourceKind.XTREAM || kind == SourceKind.LOVIX) {
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = username,

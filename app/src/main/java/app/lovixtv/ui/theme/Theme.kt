@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
  * actively unpleasant on a 55" panel at night, so everything here is anchored near-black with
  * a single restrained accent used only for focus and selection.
  */
-private val Accent = Color(0xFFFF6EA8)  // Lovix pink accent
+private val Accent = Color(0xFFFF6EA8)  // LOVIX pink accent
 private val AccentDim = Color(0xFFC03E7E)  // Dimmed pink for containers
 private val AccentSecondary = Color(0xFFFF9EC4)  // Lighter pink for highlights
 
@@ -51,7 +51,7 @@ private val DarkScheme = darkColorScheme(
  * explicitly picks Light in settings gets it on any device.
  */
 private val LightScheme = lightColorScheme(
-    primary = Color(0xFF3B4FCC),
+    primary = Color(0xFFC51162),
     onPrimary = Color.White,
     background = Color(0xFFFBFBFE),
     onBackground = Color(0xFF13141A),

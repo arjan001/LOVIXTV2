@@ -7,6 +7,7 @@ package app.lovixtv.core
 
 import android.content.Context
 import app.lovixtv.data.db.LovixTvDatabase
+import app.lovixtv.data.remote.LovixApi
 import app.lovixtv.data.remote.StalkerApi
 import app.lovixtv.data.remote.StremioClient
 import app.lovixtv.data.remote.XtreamApi
@@ -79,11 +80,14 @@ object ServiceLocator {
         /** Stalker / Ministra portal client (MAC handshake + create_link). */
         val stalkerApi: StalkerApi by lazy { StalkerApi(httpClient) }
 
+        /** LOVIX website API client — fetches movies from the LVX website. */
+        val lovixApi: LovixApi by lazy { LovixApi(httpClient) }
+
         /** Neutral Stremio add-on protocol client. Talks only to user-added manifest URLs. */
         val stremioClient: StremioClient by lazy { StremioClient(httpClient) }
 
         val sourceRepository: SourceRepository by lazy {
-            SourceRepository(database.sources(), xtreamApi, stalkerApi)
+            SourceRepository(database.sources(), xtreamApi, stalkerApi, lovixApi)
         }
 
         val catalogRepository: CatalogRepository by lazy {
@@ -97,6 +101,7 @@ object ServiceLocator {
                 positionDao = database.positions(),
                 api = xtreamApi,
                 stalkerApi = stalkerApi,
+                lovixApi = lovixApi,
                 http = httpClient,
                 settings = settings,
             )

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -50,3 +50,24 @@ jobs:
           name: test-reports
           path: app/build/reports/tests/
           if-no-files-found: ignore
+
+      # Publish the debug APK as a GitHub Release so the Pages download page always
+      # points at the newest build.  Uses a rolling "latest" tag that gets overwritten
+      # on every push — versioned tags (v1.0.0, etc.) are still created by release.yml.
+      - name: Name the debug artifact
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/*.apk dist/lovixtv-latest.apk
+          cp app/build/outputs/apk/debug/*.apk dist/lovixtv.apk
+
+      - name: Publish latest build to Releases
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Latest debug build"
+          files: dist/*.apk
+          make_latest: true
+          prerelease: true
+          generate_release_notes: true
