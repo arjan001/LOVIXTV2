@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.12
+
+- **Cast images on movie detail page** — the LOVIX API is now called when opening a movie detail
+  to fetch cast member photos and tags, so the circular cast cards and tag chips appear correctly.
+- **Home screen restructured** — the Movies home now shows "Recently Added" as a horizontal carousel
+  first, followed by a "Trending" section with all movies in a vertical-scrolling adaptive grid
+  (5–7 cards per row on TV screens).
+- **Cast & Tags shelves** — cast member circular cards and tag chips with counts are displayed
+  below the navigation bar on the Movies home screen, cached after the first sync for instant load.
+
 ## 1.0.10
 
 - **Fixed Kotlin serialization build error** — the app now compiles correctly by using explicit

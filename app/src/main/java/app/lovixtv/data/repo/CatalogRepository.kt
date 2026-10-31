@@ -409,14 +409,39 @@ class CatalogRepository(
      * `get_vod_info` and persists the merged row before returning it. Safe to call whenever a detail
      * screen opens: it runs off the main thread, only touches the network when something is missing,
      * tolerates any failure (returning the row unchanged), and — because it copies the stored row —
-     * preserves the favourite flag. Non-Xtream sources are returned as-is.
+     * preserves the favourite flag.
      */
     suspend fun movieDetail(id: Long): Movie? = withContext(Dispatchers.IO) {
         val movie = movieDao.byId(id) ?: return@withContext null
         var result = movie
         val source = sourceDao.byId(movie.sourceId)
 
-        // 1) Provider back-fill from get_vod_info, for a still-bare row on an Xtream source.
+        // 1) LOVIX source: fetch castMembers and tags from the LOVIX API
+        if (source?.kind == SourceKind.LOVIX) {
+            val lovixDetail = runCatching { lovixApi.movieDetail(source, result.streamId) }.getOrNull()
+            if (lovixDetail != null) {
+                result = result.copy(
+                    backdropUrl = result.backdropUrl ?: lovixDetail.backdropUrl,
+                    cast = result.cast ?: lovixDetail.cast,
+                    director = result.director ?: lovixDetail.director,
+                    genre = result.genre ?: lovixDetail.genre,
+                    plot = result.plot ?: lovixDetail.plot,
+                    rating = result.rating ?: lovixDetail.rating,
+                    year = result.year ?: lovixDetail.year,
+                    durationSeconds = result.durationSeconds ?: lovixDetail.durationSeconds,
+                )
+                // Apply castMembers and tags from LOVIX API (these are @Ignore, not persisted)
+                if (result.castMembers == null || result.castMembers!!.isEmpty()) {
+                    result.castMembers = lovixDetail.castMembers
+                }
+                if (result.tags == null || result.tags!!.isEmpty()) {
+                    result.tags = lovixDetail.tags
+                }
+                Log.i(TAG, "LOVIX movie detail: ${result.castMembers?.size} cast members, ${result.tags?.size} tags")
+            }
+        }
+
+        // 2) Xtream source: Provider back-fill from get_vod_info, for a still-bare row.
         if (!result.isEnriched && source?.kind == SourceKind.XTREAM) {
             val info = runCatching { api.movieInfo(source, result.streamId) }.getOrNull()
             if (info != null) {
@@ -434,7 +459,7 @@ class CatalogRepository(
             }
         }
 
-        // 2) TMDB fallback for whatever the provider still left blank — only when the user set a
+        // 3) TMDB fallback for whatever the provider still left blank — only when the user set a
         //    key, and only while a headline visual field is missing (so it stops re-fetching once
         //    filled). This is the "match Plex" back-fill for posters, backdrops, synopsis and cast.
         if (tmdb.isConfigured() && (result.backdropUrl == null || result.plot == null || result.cast == null)) {
@@ -456,6 +481,7 @@ class CatalogRepository(
             }
         }
 
+        // Persist enriched fields (backdrop, cast, genre, etc.) but NOT castMembers/tags (@Ignore)
         if (result != movie) movieDao.upsertAll(listOf(result))
         result
     }

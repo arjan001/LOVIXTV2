@@ -135,8 +135,7 @@ fun MoviesScreen(
         if (castTags.isNotEmpty()) {
             TagsShelf(tags = castTags)
         }
-        // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
-        // unambiguously — the same reason Live TV weights its guide grid.
+        // Weighted so the shelves fill the space under the fixed search + chips header
         val displayMovies = if (favoritesOnly) favoriteMovies else categoryMovies
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
@@ -145,7 +144,7 @@ fun MoviesScreen(
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     else -> EmptyVod("No favorites yet", "Star a movie to see it here.")
                 }
-                !hasContent && !favoritesOnly -> when {
+                !hasContent && displayMovies.isEmpty() && !favoritesOnly -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
@@ -167,23 +166,36 @@ fun MoviesScreen(
                         )
                     }
                 }
-                // Curated home rows: Continue Watching, Recently Added, Recommended, then by-genre
+                // Curated home: Recently Added carousel first, then Trending grid with all movies
                 else -> LazyColumn(
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    if (resume.isNotEmpty()) item(key = "cw") {
-                        ContinueWatchingRow(resume, onResume)
-                    }
+                    // Section 1: Recently Added carousel (horizontal scroll)
                     if (recentlyAdded.isNotEmpty()) item(key = "recent") {
                         MoviePosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenMovie)
                     }
-                    if (recommended.isNotEmpty()) item(key = "recommended") {
-                        MoviePosterRow(stringResource(R.string.vod_recommended), recommended, onOpenMovie)
-                    }
-                    items(genreRows, key = { "g:${it.genre}" }) { group ->
-                        MoviePosterRow(group.genre, group.items, onOpenMovie)
+                    // Section 2: Trending — all movies in adaptive grid (5-7 cards per row on TV)
+                    if (displayMovies.isNotEmpty()) item(key = "trending") {
+                        SectionHeader("Trending")
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth().height(600.dp),
+                        ) {
+                            gridItems(displayMovies, key = { it.id }) { movie ->
+                                PosterCard(
+                                    title = movie.displayTitle,
+                                    posterUrl = movie.posterUrl,
+                                    subtitle = movie.year?.toString(),
+                                    rating = movie.rating,
+                                    onClick = { onOpenMovie(movie) },
+                                )
+                            }
+                        }
                     }
                 }
             }
