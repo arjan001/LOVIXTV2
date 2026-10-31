@@ -81,9 +81,12 @@ class SourceRepository(
         fun normaliseUrl(raw: String, kind: SourceKind): String {
             var url = raw.trim()
             if (url.isEmpty()) return url
-            // Strip any existing protocol so we never double-prefix (e.g. "http://http://...")
-            url = url.removePrefix("https://").removePrefix("http://")
-            url = "http://$url"
+            // Detect and preserve the original scheme to avoid double-prefixing
+            val isHttps = url.startsWith("https://", ignoreCase = true)
+            url = url.removePrefix("https://", ignoreCase = true)
+                     .removePrefix("http://", ignoreCase = true)
+            val scheme = if (isHttps) "https://" else "http://"
+            url = "$scheme$url"
             if (kind == SourceKind.M3U) return url
             // A Stalker portal URL is the portal path itself (e.g. .../stalker_portal or .../c) —
             // stripping Xtream API paths would be wrong; just tidy the trailing slash.
