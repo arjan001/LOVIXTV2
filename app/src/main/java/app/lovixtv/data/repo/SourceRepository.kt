@@ -79,26 +79,27 @@ class SourceRepository(
          * Pure and static so it can be tested without standing up the repository.
          */
         fun normaliseUrl(raw: String, kind: SourceKind): String {
-            var url = raw.trim()
-            if (url.isEmpty()) return url
-            // Detect and preserve the original scheme to avoid double-prefixing
-            val isHttps = url.startsWith("https://", ignoreCase = true)
-            url = url.removePrefix("https://", ignoreCase = true)
-                     .removePrefix("http://", ignoreCase = true)
-            val scheme = if (isHttps) "https://" else "http://"
-            url = "$scheme$url"
-            if (kind == SourceKind.M3U) return url
-            // A Stalker portal URL is the portal path itself (e.g. .../stalker_portal or .../c) —
-            // stripping Xtream API paths would be wrong; just tidy the trailing slash.
-            if (kind == SourceKind.STALKER) return url.trimEnd('/')
-            // LOVIX sources: keep the base URL (e.g. https://dev.lovix.com)
-            if (kind == SourceKind.LOVIX) return url.trimEnd('/')
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) return trimmed
+
+            val scheme = when {
+                trimmed.startsWith("https://", ignoreCase = true) -> "https://"
+                trimmed.startsWith("http://", ignoreCase = true) -> "http://"
+                else -> "http://"
+            }
+
+            var url = trimmed
+            url = url.removePrefix("https://").removePrefix("http://")
+
+            if (kind == SourceKind.M3U) return "$scheme$url"
+            if (kind == SourceKind.STALKER) return "$scheme${url.trimEnd('/')}"
+            if (kind == SourceKind.LOVIX) return "$scheme${url.trimEnd('/')}"
 
             url = url.substringBefore("/player_api.php")
                 .substringBefore("/panel_api.php")
                 .substringBefore("/get.php")
                 .substringBefore("/xmltv.php")
-            return url.trimEnd('/')
+            return "$scheme${url.trimEnd('/')}"
         }
     }
 }
