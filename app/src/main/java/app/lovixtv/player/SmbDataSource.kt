@@ -76,7 +76,7 @@ class SmbDataSource(private val settings: AppSettings) : BaseDataSource(true) {
 }
 
 /**
- * Routes by URI scheme: each scheme in [bySchemes] (e.g. `smb://` for a NAS recording, `optvrec://`
+ * Routes by URI scheme: each scheme in [bySchemes] (e.g. `smb://` for a NAS recording, `lovixrec://`
  * for one that's still being written) goes to its own source; everything else (http, https, file,
  * content) to the normal source. Lets one player handle live streams, VOD, internal recordings,
  * NAS recordings and in-progress captures without the caller caring which is which.

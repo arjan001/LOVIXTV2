@@ -72,7 +72,7 @@ class PlayerController(
      */
     smbDataSourceFactory: androidx.media3.datasource.DataSource.Factory? = null,
     /**
-     * When set, `optvrec://<id>` media (a recording still being written) is read through this
+     * When set, `lovixrec://<id>` media (a recording still being written) is read through this
      * tail-following source so it can be watched while it records. Null everywhere except the
      * recording player.
      */
@@ -133,7 +133,7 @@ class PlayerController(
         DefaultDataSource.Factory(context, httpFactory).let { default ->
             val custom = buildMap<String, androidx.media3.datasource.DataSource.Factory> {
                 if (smbDataSourceFactory != null) put("smb", smbDataSourceFactory)
-                if (growingDataSourceFactory != null) put("optvrec", growingDataSourceFactory)
+                if (growingDataSourceFactory != null) put("lovixrec", growingDataSourceFactory)
             }
             if (custom.isEmpty()) default else RoutingDataSourceFactory(default, custom)
         }
@@ -373,7 +373,7 @@ class PlayerController(
     }
 
     private companion object {
-        const val DEFAULT_USER_AGENT = "OpenTV/0.1 (Android)"
+        const val DEFAULT_USER_AGENT = "LOVIXTV/0.1 (Android)"
 
         /** ExoPlayer's "do not retry" sentinel. */
         const val C_TIME_UNSET = androidx.media3.common.C.TIME_UNSET

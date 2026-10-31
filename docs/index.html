@@ -488,7 +488,10 @@
     return;
   }
 
-  var api = "https://api.github.com/repos/" + target.owner + "/" + target.repo + "/releases/latest";
+  // Fetch the "latest" tag release — the build workflow publishes every main push to this
+  // rolling tag so the download page always points at the newest build, not the last
+  // versioned release (v1.0.0, etc.).
+  var api = "https://api.github.com/repos/" + target.owner + "/" + target.repo + "/releases/tags/latest";
 
   fetch(api, { headers: { Accept: "application/vnd.github+json" } })
     .then(function (response) {

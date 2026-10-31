@@ -239,7 +239,7 @@ class RecordingService : Service() {
     private fun acquireWakeLock() {
         if (wakeLock?.isHeld == true) return
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "OpenTV:recording").apply {
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "LOVIXTV:recording").apply {
             setReferenceCounted(false)
             acquire(MAX_WAKE_MILLIS)
         }
@@ -263,9 +263,9 @@ class RecordingService : Service() {
             else -> getString(R.string.rec_notification_many, count)
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("OpenTV")
+            .setContentTitle("LOVIXTV")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_opentv_logo)
+            .setSmallIcon(R.drawable.ic_lovix_logo)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -287,7 +287,7 @@ class RecordingService : Service() {
     }
 
     companion object {
-        private const val TAG = "OpenTV"
+        private const val TAG = "LOVIXTV"
         private const val CHANNEL_ID = "recordings"
         private const val NOTIFICATION_ID = 4210
         private const val BUFFER_BYTES = 64 * 1024

@@ -125,14 +125,14 @@ fun VodPlayerScreen(
     // A recording that's still being written plays through the tail-following source. It behaves a
     // little differently in the transport: the "length" is how much has been recorded so far, which
     // keeps growing, and seeking is bounded to that recorded extent.
-    val growingRec = remember(streamUrl) { streamUrl.startsWith("optvrec://") }
+    val growingRec = remember(streamUrl) { streamUrl.startsWith("lovixrec://") }
     // The SMB source lets a recording stored on a NAS play and seek in-app; harmless for the
     // http/file URLs of ordinary VOD.
     val controller = remember {
         PlayerController(
             context, scope, graph.streamingHttpClient, subtitlesEnabled = false,
             smbDataSourceFactory = app.lovixtv.player.SmbDataSource.Factory(graph.settings),
-            // Lets an `optvrec://<id>` recording play while it's still being written.
+            // Lets a `lovixrec://<id>` recording play while it's still being written.
             growingDataSourceFactory =
                 app.lovixtv.player.GrowingRecordingDataSource.Factory(context.applicationContext),
             liveRecording = growingRec,

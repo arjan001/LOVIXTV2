@@ -287,7 +287,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                 navController.navigate(
                     Routes.vodPlayer(
                         key = "rec:${rec.id}",
-                        url = "optvrec://${rec.id}",
+                        url = "lovixrec://${rec.id}",
                         title = rec.title,
                         ua = rec.userAgent,
                     ),
@@ -355,7 +355,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                     },
                     onResume = { key, url, title ->
                         navController.navigate(
-                            Routes.vodPlayer(key, url, title, "OpenTV/0.1 (Android)"),
+                            Routes.vodPlayer(key, url, title, "LOVIXTV/0.1 (Android)"),
                         )
                     },
                     onAddSource = { navController.navigate(Routes.ADD_SOURCE) },
@@ -367,7 +367,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                         // A NAS recording plays straight off its smb:// locator and a USB one off
                         // its content:// document URI (Media3 reads both); an internal one through
                         // a file:// uri. An internal recording that's still capturing plays through
-                        // the tail-following optvrec:// source, so it can be watched as it records
+                        // the tail-following lovixrec:// source, so it can be watched as it records
                         // with no second connection to the provider. All go through the VOD player.
                         val stillRecording = rec.status == app.lovixtv.data.model.RecordingStatus.RECORDING
                         // Internal and NAS in-progress recordings are both tail-followable via the
@@ -375,7 +375,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                         val growable = !app.lovixtv.recording.RecordingStorage.isContent(rec.filePath) &&
                             !app.lovixtv.recording.RecordingStorage.isUsbPlaceholder(rec.filePath)
                         val url = when {
-                            stillRecording && growable -> "optvrec://${rec.id}"
+                            stillRecording && growable -> "lovixrec://${rec.id}"
                             app.lovixtv.recording.SmbClient.isSmb(rec.filePath) -> rec.filePath
                             app.lovixtv.recording.RecordingStorage.isContent(rec.filePath) -> rec.filePath
                             else -> android.net.Uri.fromFile(java.io.File(rec.filePath)).toString()
@@ -413,7 +413,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                                 key = "movie:${movie.id}",
                                 url = movie.streamUrl,
                                 title = movie.displayTitle,
-                                ua = "OpenTV/0.1 (Android)",
+                                ua = "LOVIXTV/0.1 (Android)",
                             ),
                         )
                     },
@@ -500,7 +500,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                     viewModel = vodViewModel,
                     onPlayEpisode = { key, url, title ->
                         navController.navigate(
-                            Routes.vodPlayer(key, url, title, "OpenTV/0.1 (Android)"),
+                            Routes.vodPlayer(key, url, title, "LOVIXTV/0.1 (Android)"),
                         )
                     },
                     onOpenSeries = { series -> navController.navigate(Routes.seriesDetail(series.id)) },
@@ -519,13 +519,13 @@ private fun LovixTvApp(isTelevision: Boolean) {
                                 key = "movie:${movie.id}",
                                 url = movie.streamUrl,
                                 title = movie.displayTitle,
-                                ua = "OpenTV/0.1 (Android)",
+                                ua = "LOVIXTV/0.1 (Android)",
                             ),
                         )
                     },
                     onPlayUrl = { key, url, title ->
                         navController.navigate(
-                            Routes.vodPlayer(key = key, url = url, title = title, ua = "OpenTV/0.1 (Android)"),
+                            Routes.vodPlayer(key = key, url = url, title = title, ua = "LOVIXTV/0.1 (Android)"),
                         )
                     },
                     onOpenMovie = { movie -> navController.navigate(Routes.movieDetail(movie.id)) },
@@ -552,7 +552,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                     mediaKey = arg("key"),
                     streamUrl = arg("url"),
                     title = arg("title"),
-                    userAgent = arg("ua").ifEmpty { "OpenTV/0.1 (Android)" },
+                    userAgent = arg("ua").ifEmpty { "LOVIXTV/0.1 (Android)" },
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -298,21 +298,21 @@ private fun NavRail(
             .padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // Brand: the logo mark alone when collapsed, the mark + "OpenTV" wordmark when open. The
+        // Brand: the logo mark alone when collapsed, the mark + "LOVIXTV" wordmark when open. The
         // name stays on purpose — it's what people search for.
         Row(
             Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_opentv_logo),
-                contentDescription = "OpenTV",
+                painter = painterResource(R.drawable.ic_lovix_logo),
+                contentDescription = "LOVIXTV",
                 modifier = Modifier.size(34.dp),
             )
             if (expanded) {
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    "OpenTV",
+                    "LOVIXTV",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,

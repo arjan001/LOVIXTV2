@@ -76,7 +76,7 @@ fun AboutScreen(onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
 
         Section(stringResource(R.string.about_version)) {
-            Text("OpenTV ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium)
+            Text("LOVIXTV ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(
@@ -114,17 +114,7 @@ fun AboutScreen(onBack: () -> Unit) {
 
         Section(stringResource(R.string.about_what_is_title)) {
             Text(
-                "LOVIX is a premium adult streaming platform offering thousands of films and videos.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Section("Platform Information") {
-            Text(
-                "Version ${BuildConfig.VERSION_NAME}",
+                "LOVIXTV is the official Android companion for LOVIX — your gateway to thousands of premium films and videos. Stream in full quality on your TV, tablet, or phone.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -140,7 +130,7 @@ fun AboutScreen(onBack: () -> Unit) {
             )
             LinkLine(
                 stringResource(R.string.about_source_code),
-                "github.com/opentvproject/opentv",
+                "github.com/arjan001/LOVIXTV2",
             )
         }
     }
