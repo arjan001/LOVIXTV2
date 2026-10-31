@@ -55,6 +55,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.percent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.CastMember
@@ -595,6 +596,7 @@ private fun ChipRow(count: Int, key: (Int) -> Any, chip: @Composable (Int) -> Un
 @Composable
 private fun CastMemberCard(member: CastMember, onOpenPerson: (String) -> Unit) {
     var focused by remember { mutableStateOf(false) }
+    val circleShape = RoundedCornerShape(50.percent)
     Column(
         Modifier
             .width(80.dp)
@@ -608,10 +610,10 @@ private fun CastMemberCard(member: CastMember, onOpenPerson: (String) -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .height(80.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(circleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .then(
-                    if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                    if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, circleShape)
                     else Modifier,
                 ),
         ) {
@@ -620,7 +622,7 @@ private fun CastMemberCard(member: CastMember, onOpenPerson: (String) -> Unit) {
                     model = member.imageUrl,
                     contentDescription = member.name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().clip(circleShape),
                 )
             } else {
                 // Fallback: show initials if no image

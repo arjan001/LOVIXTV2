@@ -60,8 +60,7 @@ class SourceRepository(
                 }
                 SourceKind.LOVIX -> {
                     val normalized = source.copy(url = normaliseUrl(source.url, source.kind))
-                    val result = lovixApi.bootstrap(normalized)
-                    "Connected — ${result.movies.size} movies available."
+                    lovixApi.ping(normalized)
                 }
             }
         }
@@ -82,9 +81,9 @@ class SourceRepository(
         fun normaliseUrl(raw: String, kind: SourceKind): String {
             var url = raw.trim()
             if (url.isEmpty()) return url
-            if (!url.startsWith("http://", true) && !url.startsWith("https://", true)) {
-                url = "http://$url"
-            }
+            // Strip any existing protocol so we never double-prefix (e.g. "http://http://...")
+            url = url.removePrefix("https://").removePrefix("http://")
+            url = "http://$url"
             if (kind == SourceKind.M3U) return url
             // A Stalker portal URL is the portal path itself (e.g. .../stalker_portal or .../c) —
             // stripping Xtream API paths would be wrong; just tidy the trailing slash.

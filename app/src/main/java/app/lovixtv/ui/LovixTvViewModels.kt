@@ -810,6 +810,10 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
         .flatMapLatest { graph.catalogRepository.observeMovies(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val favoriteMovies: StateFlow<List<Movie>> =
+        graph.catalogRepository.observeFavouriteMovies()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val series: StateFlow<List<Series>> = seriesCategory
         .flatMapLatest { graph.catalogRepository.observeSeries(it) }

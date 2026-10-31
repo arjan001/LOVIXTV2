@@ -52,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.percent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.Movie
@@ -77,6 +78,7 @@ fun MoviesScreen(
     hasSources: Boolean,
     isSyncing: Boolean,
     onOpenPerson: (String) -> Unit = {},
+    favoritesOnly: Boolean = false,
     viewModel: VodViewModel = viewModel(),
 ) {
     val categories by viewModel.movieCategories.collectAsState()
@@ -85,6 +87,7 @@ fun MoviesScreen(
     val recentlyAdded by viewModel.recentlyAddedMovies.collectAsState()
     val genreRows by viewModel.movieGenreRows.collectAsState()
     val categoryMovies by viewModel.movies.collectAsState()
+    val favoriteMovies by viewModel.favoriteMovies.collectAsState()
     val vodLoading by viewModel.vodLoading.collectAsState()
     val sources by viewModel.sources.collectAsState()
     val selectedSource by viewModel.selectedVodSource.collectAsState()
@@ -134,10 +137,15 @@ fun MoviesScreen(
         }
         // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
         // unambiguously — the same reason Live TV weights its guide grid.
+        val displayMovies = if (favoritesOnly) favoriteMovies else categoryMovies
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                browseCategory != null -> MovieCategoryGrid(categoryMovies, viewModel, onOpenMovie)
-                !hasContent -> when {
+                browseCategory != null && !favoritesOnly -> MovieCategoryGrid(categoryMovies, viewModel, onOpenMovie)
+                favoritesOnly && favoriteMovies.isEmpty() -> when {
+                    vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
+                    else -> EmptyVod("No favorites yet", "Star a movie to see it here.")
+                }
+                !hasContent && !favoritesOnly -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
@@ -149,8 +157,8 @@ fun MoviesScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Show all movies in vertical grid instead of horizontal rows
-                    gridItems(categoryMovies, key = { it.id }) { movie ->
+                    // Show movies in vertical grid
+                    gridItems(displayMovies, key = { it.id }) { movie ->
                         PosterCard(
                             title = movie.displayTitle,
                             posterUrl = movie.posterUrl,
@@ -709,6 +717,7 @@ private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {})
 private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "castScale")
+    val circleShape = RoundedCornerShape(50.percent)
     Column(
         Modifier
             .width(100.dp)
@@ -723,10 +732,10 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
             Modifier
                 .fillMaxWidth()
                 .height(100.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(circleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .then(
-                    if (focused) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                    if (focused) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, circleShape)
                     else Modifier,
                 ),
         ) {
@@ -735,7 +744,7 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
                     model = person.imageUrl,
                     contentDescription = person.name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().clip(circleShape),
                 )
             } else {
                 // Fallback: show initials if no image
