@@ -7,6 +7,7 @@ package app.lovixtv.data.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -324,10 +325,10 @@ data class Movie(
     val backdropUrl: String? = null,
     /** Billed cast, provider-formatted (usually comma-separated). */
     val cast: String? = null,
-    /** Cast members with images (from LOVIX enrichment). */
-    val castMembers: List<CastMember>? = null,
-    /** Tags/categories for filtering (from LOVIX enrichment). */
-    val tags: List<String>? = null,
+    /** Cast members with images (from LOVIX enrichment). Not persisted to DB - loaded from API at runtime. */
+    @Ignore val castMembers: List<CastMember>? = null,
+    /** Tags/categories for filtering (from LOVIX enrichment). Not persisted to DB - loaded from API at runtime. */
+    @Ignore val tags: List<String>? = null,
     /** Genre(s) as the provider labels them; often comma- or pipe-separated (see repo grouping). */
     val genre: String? = null,
     /** TMDB id, stored only — resolved/used by a later agent. Coerced to String (panels vary). */
