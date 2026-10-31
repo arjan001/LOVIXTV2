@@ -323,7 +323,6 @@ private fun PersonResultRow(person: Person) {
                 model = person.imageUrl,
                 contentDescription = person.name,
                 modifier = Modifier.size(width = 48.dp, height = 48.dp).clip(RoundedCornerShape(24.dp)),
-                error = remember { coil.compose.rememberAsyncImagePainter(androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)) },
             )
         } else {
             Box(
