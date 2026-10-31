@@ -1,0 +1,22 @@
+name: Delete Old Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to delete (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old release
+        run: |
+          gh release delete ${{ inputs.tag }} --yes || echo "Release may not exist or already deleted"
+        env:
+          GH_TOKEN: ${{ github.token }}
