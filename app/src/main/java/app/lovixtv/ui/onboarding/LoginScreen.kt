@@ -66,7 +66,7 @@ fun LoginScreen(
     onAddCustomSource: () -> Unit,
 ) {
     val context = LocalContext.current
-    val ui by viewModel.ui.collectAsState()
+    val uiState = viewModel.ui.collectAsState().value
 
     val providers = LovixDefaults.providers
     var selectedProviderIndex by remember { mutableIntStateOf(0) }
@@ -164,13 +164,13 @@ fun LoginScreen(
                         )
                         viewModel.test(source)
                         // Capture test result from UI state
-                        testMessage = ui.testResult
-                        testError = ui.testError
+                        testMessage = uiState.testResult
+                        testError = uiState.testError
                     },
-                    enabled = canSubmit && !ui.testing,
+                    enabled = canSubmit && !uiState.testing,
                     modifier = Modifier.weight(1f),
                 ) {
-                    if (ui.testing) {
+                    if (uiState.testing) {
                         CircularProgressIndicator(Modifier.height(18.dp), strokeWidth = 2.dp)
                     } else {
                         Text(stringResource(R.string.recset_test_connection))
@@ -187,11 +187,11 @@ fun LoginScreen(
                             if (success) onLoggedIn()
                         }
                     },
-                    enabled = canSubmit && !ui.testing && !ui.syncing,
+                    enabled = canSubmit && !uiState.testing && !uiState.syncing,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                        if (ui.syncing) "Loading movies…"
+                        if (uiState.syncing) "Loading movies…"
                         else "Sign In"
                     )
                 }
@@ -233,7 +233,7 @@ fun LoginScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            ui.syncMessage?.let { message ->
+            uiState.syncMessage?.let { message ->
                 Text(
                     message,
                     style = MaterialTheme.typography.bodyMedium,
@@ -243,7 +243,7 @@ fun LoginScreen(
             }
 
             // Loading indicator during sync
-            if (ui.syncing) {
+            if (uiState.syncing) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
