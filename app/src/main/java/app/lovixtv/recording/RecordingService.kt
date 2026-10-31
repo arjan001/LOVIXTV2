@@ -265,7 +265,7 @@ class RecordingService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("LOVIXTV")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_opentv_logo)
+            .setSmallIcon(R.drawable.ic_lovix_logo)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

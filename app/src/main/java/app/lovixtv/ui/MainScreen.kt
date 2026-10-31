@@ -305,7 +305,7 @@ private fun NavRail(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_opentv_logo),
+                painter = painterResource(R.drawable.ic_lovix_logo),
                 contentDescription = "LOVIXTV",
                 modifier = Modifier.size(34.dp),
             )

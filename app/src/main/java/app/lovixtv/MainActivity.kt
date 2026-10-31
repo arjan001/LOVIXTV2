@@ -287,7 +287,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                 navController.navigate(
                     Routes.vodPlayer(
                         key = "rec:${rec.id}",
-                        url = "optvrec://${rec.id}",
+                        url = "lovixrec://${rec.id}",
                         title = rec.title,
                         ua = rec.userAgent,
                     ),
@@ -367,7 +367,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                         // A NAS recording plays straight off its smb:// locator and a USB one off
                         // its content:// document URI (Media3 reads both); an internal one through
                         // a file:// uri. An internal recording that's still capturing plays through
-                        // the tail-following optvrec:// source, so it can be watched as it records
+                        // the tail-following lovixrec:// source, so it can be watched as it records
                         // with no second connection to the provider. All go through the VOD player.
                         val stillRecording = rec.status == app.lovixtv.data.model.RecordingStatus.RECORDING
                         // Internal and NAS in-progress recordings are both tail-followable via the
@@ -375,7 +375,7 @@ private fun LovixTvApp(isTelevision: Boolean) {
                         val growable = !app.lovixtv.recording.RecordingStorage.isContent(rec.filePath) &&
                             !app.lovixtv.recording.RecordingStorage.isUsbPlaceholder(rec.filePath)
                         val url = when {
-                            stillRecording && growable -> "optvrec://${rec.id}"
+                            stillRecording && growable -> "lovixrec://${rec.id}"
                             app.lovixtv.recording.SmbClient.isSmb(rec.filePath) -> rec.filePath
                             app.lovixtv.recording.RecordingStorage.isContent(rec.filePath) -> rec.filePath
                             else -> android.net.Uri.fromFile(java.io.File(rec.filePath)).toString()

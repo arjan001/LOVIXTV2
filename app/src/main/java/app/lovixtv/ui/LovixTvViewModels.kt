@@ -1,6 +1,6 @@
 /*
- * This file is part of OpenTV.
- * Copyright (C) 2026 The OpenTV Contributors
+ * This file is part of LOVIXTV.
+ * Copyright (C) 2026 The LOVIXTV Contributors
  * Licensed under the GNU General Public License v3.0 or later.
  */
 package app.lovixtv.ui
@@ -176,7 +176,7 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
                 )
                 // Book any new series-link airings the fresh guide just revealed.
                 runCatching { graph.recordingEngine.rescanSeriesRules() }
-            }.onFailure { Log.w("OpenTV", "Background VOD/guide load failed", it) }
+            }.onFailure { Log.w("LOVIXTV", "Background VOD/guide load failed", it) }
         }
     }
 

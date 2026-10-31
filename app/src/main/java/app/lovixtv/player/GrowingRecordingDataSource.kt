@@ -37,7 +37,7 @@ import java.io.RandomAccessFile
  * the player just reads the same growing file — which is the whole point on a single-connection
  * account, where a second live stream would get the first one cut off.
  *
- * Addressed by `optvrec://<recordingId>`. Internal recordings tail a local file; NAS recordings tail
+ * Addressed by `lovixrec://<recordingId>`. Internal recordings tail a local file; NAS recordings tail
  * the SMB file (re-reading past the last size, and reopening the handle if the server's cached
  * end-of-file hasn't caught up to what the recorder has appended).
  */

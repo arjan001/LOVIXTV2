@@ -14,8 +14,8 @@ android {
         applicationId = "app.lovixtv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 20
-        versionName = "0.11.8"
+        versionCode = 21
+        versionName = "0.11.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -62,7 +62,6 @@ android {
                 }
         }
         debug {
-            applicationIdSuffix = ".debug"
             isMinifyEnabled = false
         }
     }
