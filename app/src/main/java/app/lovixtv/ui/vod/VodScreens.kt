@@ -151,7 +151,7 @@ fun MoviesScreen(
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
                 }
                 else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 140.dp),
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -256,7 +256,7 @@ private fun MovieCategoryGrid(movies: List<Movie>, viewModel: VodViewModel, onOp
     if (movies.isEmpty()) { LoadingVod(stringResource(R.string.vod_loading_movies)); return }
     val groups = remember(movies) { viewModel.collapseVariants(movies) }
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
+        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -287,7 +287,7 @@ private fun MovieCategoryGrid(movies: List<Movie>, viewModel: VodViewModel, onOp
 private fun SeriesCategoryGrid(series: List<Series>, onOpenSeries: (Series) -> Unit) {
     if (series.isEmpty()) { LoadingVod(stringResource(R.string.vod_loading_shows)); return }
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
+        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -690,8 +690,9 @@ private fun LoadingVod(message: String) {
     }
 }
 
-/** Poster shelf card width; the grid uses an adaptive min size close to this. */
-private val POSTER_WIDTH = 140.dp
+/** Poster shelf card width; the grid uses an adaptive min size close to this.
+ * Sized for TV screens: ~180 dp gives 4–6 columns on 1080p/4K displays. */
+private val POSTER_WIDTH = 180.dp
 
 /** Rating to one decimal place, locale-independent (the "★" is drawn beside it). */
 internal fun formatRating(rating: Double): String = String.format(java.util.Locale.US, "%.1f", rating)
