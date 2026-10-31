@@ -695,8 +695,8 @@ class CatalogRepository(
             // Store people (cast) and tags for UI shelves - cached in AppSettings
             if (result.people.isNotEmpty() || result.tags.isNotEmpty()) {
                 val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
-                val peopleJson = json.encodeToString(List<Person>::class, result.people)
-                val tagsJson = json.encodeToString(List<Tag>::class, result.tags)
+                val peopleJson = json.encodeToString(result.people)
+                val tagsJson = json.encodeToString(result.tags)
                 settings.loenixPeopleJson = peopleJson
                 settings.loenixTagsJson = tagsJson
                 Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags (cached)")
