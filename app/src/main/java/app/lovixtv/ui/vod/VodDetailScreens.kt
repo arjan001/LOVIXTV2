@@ -317,10 +317,10 @@ fun SeriesDetailScreen(
             DetailInfo(
                 plot = s.plot,
                 cast = s.cast,
-                castMembers = s.castMembers,
+                castMembers = null,
                 director = null,
                 genre = s.genre,
-                tags = s.tags,
+                tags = null,
                 onOpenPerson = onOpenPerson,
             )
         }
