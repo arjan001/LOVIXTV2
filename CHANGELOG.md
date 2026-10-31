@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.4
+
+- **Prereleases included in update checks** — the app now detects beta and preview releases, not
+  just stable versions, so you never miss an update.
+- **Cast members and tags fetched from LOVIX API** — movie detail screens display cast photos in
+  circular cards and tag chips when the provider returns that data.
+- **Favorites tab restored** — sidebar navigation includes a Favorites tab showing only starred
+  movies.
+- **URL normalization fixed** — pasting a URL with `http://` or `https://` no longer creates
+  double-prefixed addresses, and HTTPS scheme is preserved.
+- **Responsive movie grid** — poster cards adapt to TV screen width (4–6 columns on 1080p/4K).
+- **Fixed Room database schema errors** — removed stale schema files from the old package name.
+
 ## 1.0.3
 
 - **Fixed compilation errors** that prevented the app from building — LoginScreen import and
