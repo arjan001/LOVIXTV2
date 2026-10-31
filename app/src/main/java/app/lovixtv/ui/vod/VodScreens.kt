@@ -46,13 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.CircleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.percent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.Movie
@@ -718,7 +718,7 @@ private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {})
 private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "castScale")
-    val circleShape = RoundedCornerShape(50.percent)
+    val circleShape = CircleShape
     Column(
         Modifier
             .width(100.dp)

@@ -49,13 +49,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CircleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.percent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.CastMember
@@ -596,7 +596,7 @@ private fun ChipRow(count: Int, key: (Int) -> Any, chip: @Composable (Int) -> Un
 @Composable
 private fun CastMemberCard(member: CastMember, onOpenPerson: (String) -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val circleShape = RoundedCornerShape(50.percent)
+    val circleShape = CircleShape
     Column(
         Modifier
             .width(80.dp)
