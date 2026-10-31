@@ -50,7 +50,7 @@
 
   var owner = host.replace(/\.github\.io$/i, "");
   var repo = segments.length ? segments[0] : owner + ".github.io";
-  var api = "https://api.github.com/repos/" + owner + "/" + repo + "/releases/tags/latest";
+  var api = "https://api.github.com/repos/" + owner + "/" + repo + "/releases/latest";
 
   function fail(message) {
     document.getElementById("headline").textContent = "No build available";
@@ -78,8 +78,11 @@
       }) : '';
       var dateTimeStr = dateStr && timeStr ? dateStr + ' at ' + timeStr : '';
 
+      // Format file size
+      var sizeMb = apk.size ? (apk.size / 1024 / 1024).toFixed(1) + ' MB' : '';
+
       document.getElementById("detail").textContent =
-        "LOVIXTV " + (release.tag_name || "") + (dateTimeStr ? " — Released " + dateTimeStr : "") + " — if nothing happens, use the link below.";
+        "LOVIXTV " + (release.tag_name || "") + (sizeMb ? " — " + sizeMb : "") + (dateTimeStr ? " — Released " + dateTimeStr : "") + " — if nothing happens, use the link below.";
       document.getElementById("fallback").textContent = "Download manually";
       document.getElementById("fallback").href = apk.browser_download_url;
       location.replace(apk.browser_download_url);

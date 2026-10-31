@@ -166,6 +166,6 @@ class UpdateViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val KEY_LAST_CHECK = "last_update_check"
-        const val CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000L // 6 hours
+        const val CHECK_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
     }
 }
