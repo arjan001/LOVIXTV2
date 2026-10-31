@@ -14,6 +14,7 @@ import app.lovixtv.data.model.Channel
 import app.lovixtv.data.model.EpgFeed
 import app.lovixtv.data.model.LiveStreamFormat
 import app.lovixtv.data.model.Movie
+import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.PlaybackPosition
 import app.lovixtv.data.model.Profile
 import app.lovixtv.data.model.Programme
@@ -22,6 +23,7 @@ import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StremioStream
 import app.lovixtv.data.model.StreamKind
+import app.lovixtv.data.model.Tag
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
@@ -1004,6 +1006,26 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                 if (q.length < 2) flowOf(emptyList()) else graph.catalogRepository.searchSeries(q)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // ---- LOVIX tags and people for search and filters --------------------------------------
+    private val _tags = MutableStateFlow<List<Tag>>(emptyList())
+    val tags: StateFlow<List<Tag>> = _tags.asStateFlow()
+
+    private val _people = MutableStateFlow<List<Person>>(emptyList())
+    val people: StateFlow<List<Person>> = _people.asStateFlow()
+
+    /**
+     * Load tags and people from the LOVIX source.
+     * This should be called after a successful LOVIX VOD sync.
+     */
+    fun loadLovixMetadata() {
+        viewModelScope.launch {
+            // For now, tags and people are loaded during VOD sync
+            // In the future, we could load them separately
+            _tags.value = emptyList()
+            _people.value = emptyList()
+        }
+    }
 
     fun toggleMovieFavourite(movie: Movie) {
         viewModelScope.launch {

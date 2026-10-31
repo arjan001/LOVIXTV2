@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material3.Icon
@@ -50,7 +52,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.Channel
 import app.lovixtv.data.model.Movie
+import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.Series
+import app.lovixtv.data.model.Tag
 import app.lovixtv.data.model.shownName
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.ui.ChannelsViewModel
@@ -80,7 +84,19 @@ fun SearchScreen(
     val channelResults by viewModel.searchResults.collectAsState()
     val movieResults by vodViewModel.movieResults.collectAsState()
     val seriesResults by vodViewModel.seriesResults.collectAsState()
+    val tags by vodViewModel.tags.collectAsState()
+    val people by vodViewModel.people.collectAsState()
     val anyResults = channelResults.isNotEmpty() || movieResults.isNotEmpty() || seriesResults.isNotEmpty()
+
+    // Filter tags and people by query
+    val filteredTags = remember(query, tags) {
+        if (query.isBlank()) tags
+        else tags.filter { it.name.contains(query, ignoreCase = true) }
+    }
+    val filteredPeople = remember(query, people) {
+        if (query.isBlank()) people
+        else people.filter { it.name.contains(query, ignoreCase = true) }
+    }
 
     LaunchedEffect(query) {
         viewModel.setSearchQuery(query)
@@ -122,7 +138,7 @@ fun SearchScreen(
                 when {
                     query.isBlank() -> Hint(stringResource(R.string.search_start_hint))
                     query.trim().length < 2 -> Hint(stringResource(R.string.common_keep_typing))
-                    !anyResults -> Hint(stringResource(R.string.search_no_results, query))
+                    !anyResults && filteredTags.isEmpty() && filteredPeople.isEmpty() -> Hint(stringResource(R.string.search_no_results, query))
                     else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (channelResults.isNotEmpty()) {
                             item { SectionHeader(stringResource(R.string.common_channels)) }
@@ -144,6 +160,18 @@ fun SearchScreen(
                                 VodResultRow(show.displayTitle, show.posterUrl, show.year?.toString()) {
                                     onOpenSeries(show)
                                 }
+                            }
+                        }
+                        if (filteredTags.isNotEmpty()) {
+                            item { SectionHeader("Tags") }
+                            items(filteredTags, key = { "t${it.name}" }) { tag ->
+                                TagResultRow(tag)
+                            }
+                        }
+                        if (filteredPeople.isNotEmpty()) {
+                            item { SectionHeader("Cast") }
+                            items(filteredPeople, key = { "p${it.id}" }) { person ->
+                                PersonResultRow(person)
                             }
                         }
                     }
@@ -245,3 +273,78 @@ private fun SearchResultRow(row: ChannelsViewModel.Row, onClick: () -> Unit) {
 
 private val searchTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 private fun searchTime(utcMillis: Long): String = searchTimeFormat.format(Date(utcMillis))
+
+@Composable
+private fun TagResultRow(tag: Tag) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (focused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .then(
+                if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                else Modifier,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(tag.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                "${tag.count} movies",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PersonResultRow(person: Person) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (focused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .then(
+                if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                else Modifier,
+            )
+            .clickable { /* TODO: Navigate to person detail screen */ }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = person.imageUrl,
+            contentDescription = person.name,
+            modifier = Modifier.size(width = 48.dp, height = 48.dp).clip(RoundedCornerShape(24.dp)),
+            error = {
+                // Fallback when image fails to load
+                Box(
+                    Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        person.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(person.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                "${person.count} movies",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}

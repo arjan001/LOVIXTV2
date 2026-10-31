@@ -92,6 +92,27 @@ data class Source(
 
 enum class StreamKind { LIVE, MOVIE, SERIES }
 
+/**
+ * A tag from the LOVIX catalogue with a count of movies tagged with it.
+ * Used for filtering and displaying tag chips with counts.
+ */
+data class Tag(
+    val name: String,
+    val count: Int,
+)
+
+/**
+ * A person (actor/actress/artist) from the LOVIX catalogue with metadata.
+ * Includes image URL, gender, and count of movies they appear in.
+ */
+data class Person(
+    val id: String,
+    val name: String,
+    val count: Int,
+    val imageUrl: String? = null,
+    val gender: String? = null,
+)
+
 @Entity(
     tableName = "categories",
     primaryKeys = ["sourceId", "id", "kind"],

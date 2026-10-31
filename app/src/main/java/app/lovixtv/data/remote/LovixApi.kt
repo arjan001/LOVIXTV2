@@ -14,8 +14,10 @@ package app.lovixtv.data.remote
 
 import app.lovixtv.data.model.Category
 import app.lovixtv.data.model.Movie
+import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.StreamKind
+import app.lovixtv.data.model.Tag
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -50,7 +52,8 @@ class LovixApi(
      * Returns a triple: (movies, categories, people list)
      *
      * The categories are derived from the genres array returned by the API.
-     * People are returned as a list of name strings for metadata.
+     * People are returned as a list of Person objects with images and counts.
+     * Tags are returned as a list of Tag objects with counts.
      */
     suspend fun bootstrap(source: Source): BootstrapResult = withContext(Dispatchers.IO) {
         val baseUrl = source.url.trimEnd('/')
@@ -71,11 +74,11 @@ class LovixApi(
                 // Parse genres into categories
                 val categories = parseGenres(moviesObj, source.id)
 
-                // Parse people
-                val people = parsePeople(moviesObj)
+                // Parse people with images and counts
+                val people = parsePeopleWithMetadata(moviesObj, source)
 
-                // Parse tags
-                val tags = parseTags(moviesObj)
+                // Parse tags with counts
+                val tags = parseTagsWithCounts(moviesObj)
 
                 BootstrapResult(
                     movies = movies,
@@ -254,6 +257,41 @@ class LovixApi(
         return genreList
     }
 
+    private fun parsePeopleWithMetadata(moviesObj: JsonObject, source: Source): List<Person> {
+        val peopleArray = moviesObj["people"]?.jsonArray ?: return emptyList()
+        return peopleArray.mapNotNull { element ->
+            val obj = element.jsonObjectOrNull ?: return@mapNotNull null
+            val name = obj["name"]?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            val id = obj["id"]?.contentOrNull ?: name.lowercase().replace(" ", "_")
+            val count = obj["count"]?.toIntOrNull() ?: 0
+            val imageUrl = obj["image"]?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?.let { if (it.startsWith("http")) it else "${source.url.trimEnd('/')}/$it" }
+            val gender = obj["gender"]?.contentOrNull
+
+            Person(
+                id = id,
+                name = name,
+                count = count,
+                imageUrl = imageUrl,
+                gender = gender,
+            )
+        }
+    }
+
+    private fun parseTagsWithCounts(moviesObj: JsonObject): List<Tag> {
+        val tagsArray = moviesObj["tags"]?.jsonArray ?: return emptyList()
+        return tagsArray.mapNotNull { element ->
+            val obj = element.jsonObjectOrNull ?: return@mapNotNull null
+            val name = obj["name"]?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            val count = obj["count"]?.toIntOrNull() ?: 0
+
+            Tag(name = name, count = count)
+        }
+    }
+
+    // Legacy parse functions for backward compatibility
     private fun parsePeople(moviesObj: JsonObject): List<String> {
         val peopleArray = moviesObj["people"]?.jsonArray ?: return emptyList()
         return peopleArray.mapNotNull { element ->
@@ -331,6 +369,6 @@ class LovixApi(
 data class BootstrapResult(
     val movies: List<Movie>,
     val categories: List<Category>,
-    val people: List<String>,
-    val tags: List<String>,
+    val people: List<Person>,
+    val tags: List<Tag>,
 )
