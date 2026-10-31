@@ -7,6 +7,7 @@ package app.lovixtv.player
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
