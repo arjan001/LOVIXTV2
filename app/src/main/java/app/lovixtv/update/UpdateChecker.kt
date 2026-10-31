@@ -52,7 +52,7 @@ class UpdateChecker(
             val request = Request.Builder()
                 .url("https://api.github.com/repos/$repoSlug/releases/latest")
                 .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "OpenTV")
+                .header("User-Agent", "LOVIXTV")
                 .build()
 
             http.newCall(request).execute().use { response ->
@@ -80,7 +80,7 @@ class UpdateChecker(
 
     companion object {
         /** The single place the project's GitHub location is written down. */
-        const val REPO_SLUG = "opentvproject/opentv"
+        const val REPO_SLUG = "arjan001/LOVIXTV2"
 
         /**
          * The GitHub release body is written for developers and has GitHub's auto-generated
