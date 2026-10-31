@@ -61,13 +61,49 @@ jobs:
           cp app/build/outputs/apk/debug/*.apk dist/lovixtv-latest.apk
           cp app/build/outputs/apk/debug/*.apk dist/lovixtv.apk
 
+      - name: Generate release notes for this build
+        if: github.event_name != 'pull_request'
+        id: release_notes
+        run: |
+          # Get the short commit hash
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_SHORT=$(git rev-parse --short $COMMIT_SHA)
+          
+          # Get the commit message
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s" $COMMIT_SHA)
+          
+          # Get recent commits (last 5)
+          RECENT_COMMITS=$(git log -5 --pretty=format:"- %s (%h)" --no-merges $COMMIT_SHA)
+          
+          # Create release body
+          cat > release_notes.txt <<EOF
+          ## LOVIXTV Debug Build
+          
+          **Version:** 0.11.9  
+          **Commit:** $COMMIT_SHORT  
+          **Built:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ### Recent Changes
+          $RECENT_COMMITS
+          
+          ---
+          
+          This is an automated debug build from the main branch.  
+          For stable releases, check for versioned tags (v1.0.0, etc.).
+          EOF
+          
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Publish latest build to Releases
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Latest debug build"
+          name: "Latest debug build - ${{ steps.release_notes.outputs.RELEASE_NOTES }}"
+          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           files: dist/*.apk
           make_latest: true
           prerelease: true
-          generate_release_notes: true
+          generate_release_notes: false
