@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.13
+
+- **Navbar cleaned up** — removed category filter chips ("Rated R", "For Adults") so only the
+  search bar and provider chips remain. The home screen shows all movies without category filtering.
+- **Home screen restructured** — three sections in order: Continue Watching carousel, Recently Added
+  carousel, then all films in a vertical-scrolling adaptive grid (6–7 cards per row on TV screens).
+- **Series screen matched** — Shows tab uses the same layout: Continue Watching, Recently Added,
+  then all series in an adaptive grid.
+
 ## 1.0.12
 
 - **Cast images on movie detail page** — the LOVIX API is now called when opening a movie detail

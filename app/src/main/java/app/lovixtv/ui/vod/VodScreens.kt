@@ -81,11 +81,8 @@ fun MoviesScreen(
     favoritesOnly: Boolean = false,
     viewModel: VodViewModel = viewModel(),
 ) {
-    val categories by viewModel.movieCategories.collectAsState()
     val resume by viewModel.continueWatching.collectAsState()
-    val recommended by viewModel.recommendedMovies.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedMovies.collectAsState()
-    val genreRows by viewModel.movieGenreRows.collectAsState()
     val categoryMovies by viewModel.movies.collectAsState()
     val favoriteMovies by viewModel.favoriteMovies.collectAsState()
     val vodLoading by viewModel.vodLoading.collectAsState()
@@ -105,46 +102,34 @@ fun MoviesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    // null = the curated home rows; a category id = that category's full grid.
-    var browseCategory by remember { mutableStateOf<String?>(null) }
-
-    val hasContent = resume.isNotEmpty() || recommended.isNotEmpty() ||
-        recentlyAdded.isNotEmpty() || genreRows.isNotEmpty()
-
     Column(Modifier.fillMaxSize()) {
         SearchAffordance(onOpenSearch)
+        // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
                 sources = sources,
                 selected = selectedSource,
-                onSelectAll = { browseCategory = null; viewModel.selectVodSource(null) },
-                onSelectSource = { id -> browseCategory = null; viewModel.selectVodSource(id) },
+                onSelectAll = { viewModel.selectVodSource(null) },
+                onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        CategoryChips(
-            entries = categories.map { it.id to it.name },
-            selected = browseCategory,
-            onSelectHome = { browseCategory = null },
-            onSelectCategory = { id -> browseCategory = id; viewModel.selectMovieCategory(id) },
-        )
-        // Phase 2: Cast/Creators shelf below navbar
+        // Cast/Creators shelf below navbar
         if (castPeople.isNotEmpty()) {
             CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         }
-        // Phase 2: Tags shelf with counts
+        // Tags shelf with counts
         if (castTags.isNotEmpty()) {
             TagsShelf(tags = castTags)
         }
-        // Weighted so the shelves fill the space under the fixed search + chips header
+        // Scrollable content area
         val displayMovies = if (favoritesOnly) favoriteMovies else categoryMovies
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                browseCategory != null && !favoritesOnly -> MovieCategoryGrid(categoryMovies, viewModel, onOpenMovie)
                 favoritesOnly && favoriteMovies.isEmpty() -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     else -> EmptyVod("No favorites yet", "Star a movie to see it here.")
                 }
-                !hasContent && displayMovies.isEmpty() && !favoritesOnly -> when {
+                displayMovies.isEmpty() && !favoritesOnly -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
@@ -166,25 +151,29 @@ fun MoviesScreen(
                         )
                     }
                 }
-                // Curated home: Recently Added carousel first, then Trending grid with all movies
+                // Curated home: Continue Watching → Recently Added → All films grid
                 else -> LazyColumn(
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Section 1: Recently Added carousel (horizontal scroll)
+                    // Section 1: Continue Watching (horizontal carousel)
+                    if (resume.isNotEmpty()) item(key = "cw") {
+                        ContinueWatchingRow(resume, onResume)
+                    }
+                    // Section 2: Recently Added (horizontal carousel)
                     if (recentlyAdded.isNotEmpty()) item(key = "recent") {
                         MoviePosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenMovie)
                     }
-                    // Section 2: Trending — all movies in adaptive grid (5-7 cards per row on TV)
-                    if (displayMovies.isNotEmpty()) item(key = "trending") {
-                        SectionHeader("Trending")
+                    // Section 3: All films — adaptive grid (6-7 cards per row on TV)
+                    if (displayMovies.isNotEmpty()) item(key = "all") {
+                        SectionHeader(stringResource(R.string.vod_all))
                         LazyVerticalGrid(
                             columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                            contentPadding = PaddingValues(16.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth().height(600.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             gridItems(displayMovies, key = { it.id }) { movie ->
                                 PosterCard(
@@ -204,10 +193,8 @@ fun MoviesScreen(
 }
 
 /**
- * Shows: the same row-based home as Movies (Continue Watching, Recently added, genre rows) with the
- * category chip strip for whole-category browsing. A show opens its detail page — where episodes are
- * fetched on demand, since pulling every episode of every series up front is what makes a first sync
- * take forever.
+ * Shows: row-based home with Continue Watching, Recently Added, and all series in an adaptive grid.
+ * A show opens its detail page — where episodes are fetched on demand.
  */
 @Composable
 fun SeriesScreen(
@@ -218,10 +205,8 @@ fun SeriesScreen(
     isSyncing: Boolean,
     viewModel: VodViewModel = viewModel(),
 ) {
-    val categories by viewModel.seriesCategories.collectAsState()
     val resume by viewModel.continueWatching.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedSeries.collectAsState()
-    val genreRows by viewModel.seriesGenreRows.collectAsState()
     val categorySeries by viewModel.series.collectAsState()
     val vodLoading by viewModel.vodLoading.collectAsState()
     val sources by viewModel.sources.collectAsState()
@@ -232,30 +217,20 @@ fun SeriesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    var browseCategory by remember { mutableStateOf<String?>(null) }
-
-    val hasContent = resume.isNotEmpty() || recentlyAdded.isNotEmpty() || genreRows.isNotEmpty()
-
     Column(Modifier.fillMaxSize()) {
         SearchAffordance(onOpenSearch)
+        // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
                 sources = sources,
                 selected = selectedSource,
-                onSelectAll = { browseCategory = null; viewModel.selectVodSource(null) },
-                onSelectSource = { id -> browseCategory = null; viewModel.selectVodSource(id) },
+                onSelectAll = { viewModel.selectVodSource(null) },
+                onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        CategoryChips(
-            entries = categories.map { it.id to it.name },
-            selected = browseCategory,
-            onSelectHome = { browseCategory = null },
-            onSelectCategory = { id -> browseCategory = id; viewModel.selectSeriesCategory(id) },
-        )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                browseCategory != null -> SeriesCategoryGrid(categorySeries, onOpenSeries)
-                !hasContent -> when {
+                categorySeries.isEmpty() -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_shows))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
@@ -265,12 +240,32 @@ fun SeriesScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    // Section 1: Continue Watching (horizontal carousel)
                     if (resume.isNotEmpty()) item(key = "cw") { ContinueWatchingRow(resume, onResume) }
+                    // Section 2: Recently Added (horizontal carousel)
                     if (recentlyAdded.isNotEmpty()) item(key = "recent") {
                         SeriesPosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenSeries)
                     }
-                    items(genreRows, key = { "g:${it.genre}" }) { group ->
-                        SeriesPosterRow(group.genre, group.items, onOpenSeries)
+                    // Section 3: All series — adaptive grid (6-7 cards per row on TV)
+                    if (categorySeries.isNotEmpty()) item(key = "all") {
+                        SectionHeader(stringResource(R.string.vod_all))
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            gridItems(categorySeries, key = { it.id }) { series ->
+                                PosterCard(
+                                    title = series.displayTitle,
+                                    posterUrl = series.posterUrl,
+                                    subtitle = series.year?.toString(),
+                                    rating = series.rating,
+                                    onClick = { onOpenSeries(series) },
+                                )
+                            }
+                        }
                     }
                 }
             }
