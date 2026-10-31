@@ -26,6 +26,7 @@ import app.lovixtv.data.model.StreamKind
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.parser.M3uParser
 import app.lovixtv.data.parser.VodTitleCleaner
+import app.lovixtv.data.remote.BootstrapResult
 import app.lovixtv.data.remote.LovixApi
 import app.lovixtv.data.remote.StalkerApi
 import app.lovixtv.data.remote.TmdbClient
@@ -702,7 +703,7 @@ class CatalogRepository(
      * Fetch LOVIX bootstrap data for UI shelves (people, tags) without storing to database.
      * Used by VodViewModel to populate the cast/creators and tags sections.
      */
-    suspend fun syncLovixBootstrap(source: Source): app.lovixtv.data.remote.LovixApi.BootstrapResult {
+    suspend fun syncLovixBootstrap(source: Source): BootstrapResult {
         return lovixApi.bootstrap(source)
     }
 

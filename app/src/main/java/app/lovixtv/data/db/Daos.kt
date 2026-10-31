@@ -247,6 +247,9 @@ interface ChannelDao {
     @Query("DELETE FROM channels WHERE sourceId = :sourceId")
     suspend fun deleteForSource(sourceId: Long)
 
+    @Query("DELETE FROM channels")
+    suspend fun deleteAll()
+
     /**
      * Preserves user state (favourites, hidden, manual order, custom names, EPG overrides) across a
      * catalogue refresh. Upsert would otherwise overwrite them with the defaults from the
@@ -306,6 +309,9 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories WHERE sourceId = :sourceId")
     suspend fun deleteForSource(sourceId: Long)
+
+    @Query("DELETE FROM categories")
+    suspend fun deleteAll()
 }
 
 /** Projection for [CategoryDao.namesFor]. */
@@ -510,6 +516,9 @@ interface MovieDao {
 
     @Query("UPDATE movies SET favourite = 1 WHERE streamUrl = :url")
     suspend fun markFavouriteByUrl(url: String)
+
+    @Query("DELETE FROM movies")
+    suspend fun deleteAll()
 
     @Upsert
     suspend fun upsertAll(movies: List<Movie>)

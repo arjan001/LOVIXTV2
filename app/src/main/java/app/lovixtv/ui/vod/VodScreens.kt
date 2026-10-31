@@ -91,6 +91,10 @@ fun MoviesScreen(
     val people by viewModel.people.collectAsState()
     val tags by viewModel.tags.collectAsState()
 
+    // Cast to concrete types to avoid ambiguity
+    val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
+    val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
+
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed
     // home rows (recommended, by-genre) on open too — cheap, and covers a library already on disk.
     LaunchedEffect(Unit) {
@@ -121,12 +125,12 @@ fun MoviesScreen(
             onSelectCategory = { id -> browseCategory = id; viewModel.selectMovieCategory(id) },
         )
         // Phase 2: Cast/Creators shelf below navbar
-        if (people.isNotEmpty()) {
-            CastShelf(people = people, onOpenPerson = onOpenPerson)
+        if (castPeople.isNotEmpty()) {
+            CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         }
         // Phase 2: Tags shelf with counts
-        if (tags.isNotEmpty()) {
-            TagsShelf(tags = tags)
+        if (castTags.isNotEmpty()) {
+            TagsShelf(tags = castTags)
         }
         // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
         // unambiguously — the same reason Live TV weights its guide grid.

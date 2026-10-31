@@ -91,11 +91,11 @@ fun SearchScreen(
     // Filter tags and people by query
     val filteredTags = remember(query, tags) {
         if (query.isBlank()) tags
-        else tags.filter { it.name.contains(query, ignoreCase = true) }
+        else tags.filterIsInstance<app.lovixtv.data.model.Tag>().filter { it.name.contains(query, ignoreCase = true) }
     }
     val filteredPeople = remember(query, people) {
         if (query.isBlank()) people
-        else people.filter { it.name.contains(query, ignoreCase = true) }
+        else people.filterIsInstance<app.lovixtv.data.model.Person>().filter { it.name.contains(query, ignoreCase = true) }
     }
 
     // Autocomplete suggestions: top 5 matching movie titles
@@ -196,13 +196,13 @@ fun SearchScreen(
                         }
                         if (filteredTags.isNotEmpty()) {
                             item { SectionHeader("Tags") }
-                            items(filteredTags, key = { "t${it.name}" }) { tag ->
+                            items(filteredTags, key = { (it as? app.lovixtv.data.model.Tag)?.name ?: "" }) { tag ->
                                 TagResultRow(tag)
                             }
                         }
                         if (filteredPeople.isNotEmpty()) {
                             item { SectionHeader("Cast") }
-                            items(filteredPeople, key = { "p${it.id}" }) { person ->
+                            items(filteredPeople, key = { (it as? app.lovixtv.data.model.Person)?.id ?: 0 }) { person ->
                                 PersonResultRow(person)
                             }
                         }

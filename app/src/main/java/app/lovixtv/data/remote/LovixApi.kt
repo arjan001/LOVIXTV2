@@ -211,10 +211,11 @@ class LovixApi(
                 addedMillis = 0L,
                 backdropUrl = obj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
                 cast = joinPeopleList(obj["people"]),
-                castMembers = parseCastMembers(obj["cast"]?.jsonArray, source),
-                tags = parseTagsList(obj["tags"]?.jsonArray),
                 genre = joinGenreList(obj["genre"]),
-            )
+            ).apply {
+                castMembers = parseCastMembers(obj["cast"]?.jsonArray, source)
+                tags = parseTagsList(obj["tags"]?.jsonArray)
+            }
         }
     }
 
@@ -243,7 +244,10 @@ class LovixApi(
             backdropUrl = movieObj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
             cast = joinPeopleList(movieObj["people"]),
             genre = joinGenreList(movieObj["genre"]),
-        )
+        ).apply {
+            castMembers = parseCastMembers(movieObj["cast"]?.jsonArray, source)
+            tags = parseTagsList(movieObj["tags"]?.jsonArray)
+        }
     }
 
     private fun parseGenres(moviesObj: JsonObject, sourceId: Long): List<Category> {

@@ -42,7 +42,6 @@ import app.lovixtv.sync.SyncServer
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import android.util.Log
 import app.lovixtv.core.StatusBus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -1040,13 +1039,6 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                 if (q.length < 2) flowOf(emptyList()) else graph.catalogRepository.searchSeries(q)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    // ---- LOVIX tags and people for search and filters --------------------------------------
-    private val _tags = MutableStateFlow<List<Tag>>(emptyList())
-    val tags: StateFlow<List<Tag>> = _tags.asStateFlow()
-
-    private val _people = MutableStateFlow<List<Person>>(emptyList())
-    val people: StateFlow<List<Person>> = _people.asStateFlow()
 
     /**
      * Load tags and people from the LOVIX source.
