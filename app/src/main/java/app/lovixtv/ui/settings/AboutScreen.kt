@@ -112,9 +112,9 @@ fun AboutScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.height(16.dp))
 
-        Section(stringResource(R.string.about_what_is_title)) {
+        Section("About LOVIXTV") {
             Text(
-                "LOVIXTV is the official Android companion for LOVIX — your gateway to thousands of premium films and videos. Stream in full quality on your TV, tablet, or phone.",
+                "LOVIXTV is your premium IPTV and VOD streaming companion for the LOVIX adult content platform. Access thousands of high-quality adult films and videos with full HD streaming on your TV, tablet, or phone.\n\nOur catalogue is updated daily with the latest releases, featuring detailed cast information, movie metadata, and an intuitive browsing experience. Enjoy seamless playback with our optimized player supporting subtitles, background playback, and remote control navigation.\n\nStream with confidence knowing you're getting the best adult entertainment experience, delivered with professional-grade quality and reliability.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -142,18 +142,6 @@ fun AboutScreen(onBack: () -> Unit) {
         }
 
         Spacer(Modifier.height(16.dp))
-
-        Section(stringResource(R.string.about_licence_links_title)) {
-            LinkLine(
-                "Website",
-                "lovix.com",
-                url = "https://lovix.com",
-            )
-            LinkLine(
-                stringResource(R.string.about_source_code),
-                "github.com/arjan001/LOVIXTV2",
-            )
-        }
     }
 }
 

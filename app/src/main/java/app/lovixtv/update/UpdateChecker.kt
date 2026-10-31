@@ -91,11 +91,9 @@ class UpdateChecker(
          */
         fun cleanNotes(raw: String): String {
             var text = raw
-            // Everything from the first boilerplate / auto-generated marker onward is noise.
+            // Only remove the boilerplate, keep user-facing changelog
             val cutFrom = listOf(
                 "Built by GitHub Actions",
-                "**Full Changelog**",
-                "## What's Changed",
                 "<!--",
             )
             for (marker in cutFrom) {
@@ -112,7 +110,7 @@ class UpdateChecker(
             return text.lines().joinToString("\n") { it.trimEnd() }
                 .replace(Regex("\n{3,}"), "\n\n")
                 .trim()
-                .take(1200)
+                .take(2000) // Increased to show more changelog details
         }
 
         /**
