@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.8
+
+- **LOVIX logo as app icon** — the app now displays the LOVIX brand logo when installing, updating,
+  and on the Android TV home screen, replacing the generic launcher icon.
+- **Improved URL handling** — entering a server URL with or without `http://` / `https://` prefix
+  now works correctly; the app strips and re-adds the scheme to avoid double-prefix errors.
+
 ## 1.0.7
 
 - **Movies carousel sections restored** — the Movies home screen now displays Continue Watching,
