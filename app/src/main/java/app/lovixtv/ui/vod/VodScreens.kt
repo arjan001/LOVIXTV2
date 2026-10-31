@@ -150,14 +150,13 @@ fun MoviesScreen(
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
                 }
-                else -> LazyVerticalGrid(
+                favoritesOnly -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Show movies in vertical grid
                     gridItems(displayMovies, key = { it.id }) { movie ->
                         PosterCard(
                             title = movie.displayTitle,
@@ -166,6 +165,25 @@ fun MoviesScreen(
                             rating = movie.rating,
                             onClick = { onOpenMovie(movie) },
                         )
+                    }
+                }
+                // Curated home rows: Continue Watching, Recently Added, Recommended, then by-genre
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    if (resume.isNotEmpty()) item(key = "cw") {
+                        ContinueWatchingRow(resume, onResume)
+                    }
+                    if (recentlyAdded.isNotEmpty()) item(key = "recent") {
+                        MoviePosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenMovie)
+                    }
+                    if (recommended.isNotEmpty()) item(key = "recommended") {
+                        MoviePosterRow(stringResource(R.string.vod_recommended), recommended, onOpenMovie)
+                    }
+                    items(genreRows, key = { "g:${it.genre}" }) { group ->
+                        MoviePosterRow(group.genre, group.items, onOpenMovie)
                     }
                 }
             }

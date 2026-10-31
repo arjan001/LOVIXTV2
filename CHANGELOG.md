@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.7
+
+- **Movies carousel sections restored** — the Movies home screen now displays Continue Watching,
+  Recently Added, Recommended, and genre-based rows (scrollable left-to-right carousels) instead
+  of a flat grid.
+- **Subtitle caching for offline playback** — Whisper-generated subtitles are downloaded and cached
+  locally on first use. If the server is down, cached subtitles continue to play. Cache expires
+  after 7 days and refreshes in the background.
+- **Subtitle format detection** — the player now correctly detects WebVTT vs SRT subtitle format
+  from the file extension, so both formats render properly.
+
 ## 1.0.6
 
 - **Whisper AI subtitles enabled** — VOD movies now display auto-generated subtitles in English,

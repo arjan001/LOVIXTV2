@@ -279,8 +279,15 @@ class PlayerController(
             _state.value = State.Buffering(request.title)
 
             val subtitleConfigs = request.subtitleTracks.map { (language, subtitleUrl) ->
+                // Detect mime type from file extension: .vtt -> WebVTT, .srt -> SubRip
+                val mimeType = when {
+                    subtitleUrl.endsWith(".vtt", ignoreCase = true) ->
+                        androidx.media3.common.MimeTypes.APPLICATION_WVTT
+                    else ->
+                        androidx.media3.common.MimeTypes.APPLICATION_SUBRIP
+                }
                 MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleUrl))
-                    .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                    .setMimeType(mimeType)
                     .setLanguage(language)
                     .build()
             }
