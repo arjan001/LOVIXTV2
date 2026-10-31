@@ -6,9 +6,7 @@
  */
 package app.lovixtv.ui.onboarding
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,13 +16,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -51,7 +44,8 @@ import app.lovixtv.ui.SourcesViewModel
  * Simplified login screen for first-run users.
  *
  * Shows only username and password fields with a Sign In button.
- * An "Add custom source" link navigates to the full AddSourceScreen for advanced users.
+ * Automatically uses the primary LOVIX server (line.istreamix.com).
+ * An "Advanced / Custom source" link navigates to the full AddSourceScreen.
  */
 @Composable
 fun LoginScreen(
@@ -61,7 +55,7 @@ fun LoginScreen(
 ) {
     val ui by viewModel.ui.collectAsState()
 
-    // Use the default (first) LOVIX provider automatically
+    // Always use the primary LOVIX server
     val provider = LovixDefaults.providers[0]
 
     var username by remember { mutableStateOf("") }

@@ -57,13 +57,20 @@ class LovixApi(
      */
     suspend fun bootstrap(source: Source): BootstrapResult = withContext(Dispatchers.IO) {
         val baseUrl = source.url.trimEnd('/')
+        
+        // Ensure URL has http:// prefix
+        val fullUrl = if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+            baseUrl
+        } else {
+            "http://$baseUrl"
+        }
 
         // Try adult.php first (main site), fall back to api.php
         val apiPaths = listOf("adult.php", "api.php")
         var lastError: Throwable? = null
 
         for (apiPath in apiPaths) {
-            val apiUrl = "$baseUrl/$apiPath"
+            val apiUrl = "$fullUrl/$apiPath"
             runCatching {
                 val body = getJson(apiUrl, mapOf("action" to "bootstrap"))
                 val moviesObj = body.jsonObjectOrNull ?: throw LovixException("Invalid bootstrap response")
@@ -90,7 +97,7 @@ class LovixApi(
                 .onFailure { lastError = it }
         }
 
-        throw lastError ?: LovixException("Could not connect to LVX server")
+        throw lastError ?: LovixException("Could not connect to LVX server at $fullUrl")
     }
 
     /**

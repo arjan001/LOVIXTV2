@@ -694,6 +694,16 @@ class CatalogRepository(
         }
     }
 
+    /** Clear all cached data from the database. */
+    suspend fun clearAll() {
+        withContext(Dispatchers.IO) {
+            movieDao.deleteAll()
+            categoryDao.deleteAll()
+            channelDao.deleteAll()
+            Log.i(TAG, "Cache cleared: all movies, categories, and channels deleted")
+        }
+    }
+
     private suspend fun syncXtreamLive(source: Source, nowUtcMillis: Long): SyncResult {
         // Authenticate first so a wrong password produces a clear message rather than
         // four separate confusing failures further down.

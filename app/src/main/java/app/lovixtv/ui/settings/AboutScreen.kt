@@ -122,6 +122,27 @@ fun AboutScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.height(16.dp))
 
+        Section("Data & Cache") {
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        val graph = ServiceLocator.get(context)
+                        runCatching {
+                            graph.catalogRepository.clearAll()
+                            Toast.makeText(context, "Cache cleared successfully", Toast.LENGTH_SHORT).show()
+                        }.onFailure {
+                            Toast.makeText(context, "Failed to clear cache", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Clear Cache")
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         Section(stringResource(R.string.about_licence_links_title)) {
             LinkLine(
                 "Website",

@@ -22,11 +22,11 @@ data class LovixProvider(
  */
 object LovixDefaults {
 
-    /** The three built-in LOVIX providers from account.json. */
+    /** The three built-in LOVIX providers from admin. */
     val providers: List<LovixProvider> = listOf(
         LovixProvider("LOVIX (Main)", "http://line.istreamix.com"),
-        LovixProvider("LOVIX (Backup 1)", "http://vpn.new4k-tx.site"),
-        LovixProvider("LOVIX (Backup 2)", "http://vpn.istreamix.com"),
+        LovixProvider("LOVIX (Backup 1)", "http://vpn.istreamix.com"),
+        LovixProvider("LOVIX (Backup 2)", "http://vpn.new4k-tx.site"),
     )
 
     /** Default source name displayed in the app. */
