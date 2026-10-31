@@ -35,7 +35,7 @@
       Lets the app install the update APK it downloads itself. Sideloaded builds get no
       updates from any store, so self-update is the only route new versions reach users.
       The system still shows its own install screen and, first time, asks the user to allow
-      installs from OpenTV — we never install silently.
+      installs from LOVIXTV — we never install silently.
     -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

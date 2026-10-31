@@ -114,17 +114,7 @@ fun AboutScreen(onBack: () -> Unit) {
 
         Section(stringResource(R.string.about_what_is_title)) {
             Text(
-                "LOVIX is a premium adult streaming platform offering thousands of films and videos.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Section("Platform Information") {
-            Text(
-                "Version ${BuildConfig.VERSION_NAME}",
+                "LOVIXTV is the official Android companion for LOVIX — your gateway to thousands of premium films and videos. Stream in full quality on your TV, tablet, or phone.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
