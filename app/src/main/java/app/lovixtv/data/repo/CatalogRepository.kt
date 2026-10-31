@@ -25,6 +25,7 @@ import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StreamKind
 import app.lovixtv.data.model.Tag
+import kotlinx.serialization.ListSerializer
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.parser.M3uParser
 import app.lovixtv.data.parser.VodTitleCleaner
@@ -695,8 +696,8 @@ class CatalogRepository(
             // Store people (cast) and tags for UI shelves - cached in AppSettings
             if (result.people.isNotEmpty() || result.tags.isNotEmpty()) {
                 val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
-                val peopleJson = json.encodeToString(result.people)
-                val tagsJson = json.encodeToString(result.tags)
+                val peopleJson = json.encodeToString(ListSerializer(Person.serializer()), result.people)
+                val tagsJson = json.encodeToString(ListSerializer(Tag.serializer()), result.tags)
                 settings.loenixPeopleJson = peopleJson
                 settings.loenixTagsJson = tagsJson
                 Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags (cached)")

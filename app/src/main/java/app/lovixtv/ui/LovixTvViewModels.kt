@@ -24,6 +24,7 @@ import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StremioStream
 import app.lovixtv.data.model.StreamKind
 import app.lovixtv.data.model.Tag
+import kotlinx.serialization.ListSerializer
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
@@ -969,11 +970,11 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                             val result = graph.catalogRepository.syncLovixBootstrap(lovixSource)
                             if (result.people.isNotEmpty()) {
                                 _people.value = result.people
-                                settings.loenixPeopleJson = json.encodeToString(result.people)
+                                settings.loenixPeopleJson = json.encodeToString(ListSerializer(Person.serializer()), result.people)
                             }
                             if (result.tags.isNotEmpty()) {
                                 _tags.value = result.tags
-                                settings.loenixTagsJson = json.encodeToString(result.tags)
+                                settings.loenixTagsJson = json.encodeToString(ListSerializer(Tag.serializer()), result.tags)
                             }
                         }.onFailure { Log.w("VodViewModel", "Failed to load people/tags from API", it) }
                     }
