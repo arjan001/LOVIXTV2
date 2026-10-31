@@ -130,7 +130,7 @@ fun VodPlayerScreen(
     // http/file URLs of ordinary VOD.
     val controller = remember {
         PlayerController(
-            context, scope, graph.streamingHttpClient, subtitlesEnabled = false,
+            context, scope, graph.streamingHttpClient, subtitlesEnabled = true,
             smbDataSourceFactory = app.lovixtv.player.SmbDataSource.Factory(graph.settings),
             // Lets a `lovixrec://<id>` recording play while it's still being written.
             growingDataSourceFactory =
@@ -196,6 +196,25 @@ fun VodPlayerScreen(
         }
     }
 
+    // Build external subtitle tracks from the LOVIX subtitle service (Whisper-generated).
+    // The service runs on the same server as the stream, at port 6970.
+    val subtitleTracks = remember(streamUrl, mediaKey) {
+        // Extract the server base URL from the stream URL (e.g. http://server:port/movie/...)
+        val serverUrl = runCatching {
+            val url = streamUrl.substringBefore("/movie/")
+            if (url.startsWith("http://") || url.startsWith("https://")) url else "http://$url"
+        }.getOrNull()?.trimEnd('/')
+
+        val languages = listOf("en" to "English", "nl" to "Dutch", "es" to "Spanish", "fr" to "French")
+        serverUrl?.let { base ->
+            languages.map { (code, label) ->
+                // Subtitle service endpoint: /subtitles/{mediaKey}.vtt?lang={code}&position=0
+                val subtitleUrl = "$base:6970/subtitles/${mediaKey}.vtt?lang=$code&position=0"
+                code to subtitleUrl
+            }
+        } ?: emptyList()
+    }
+
     LaunchedEffect(mediaKey) {
         val resumeFrom = graph.playbackPositions.get(settings.activeProfileId.value, mediaKey)
             ?.takeIf { !it.isFinished }?.positionMillis ?: 0L
@@ -206,6 +225,7 @@ fun VodPlayerScreen(
                 userAgent = userAgent,
                 startPositionMillis = resumeFrom,
                 isLive = false,
+                subtitleTracks = subtitleTracks,
             ),
             debounce = false,
         )
@@ -487,12 +507,15 @@ private fun TrackPanel(
     if (panel == VodPanel.SUBTITLES) {
         val anySelected = groups.any { g -> (0 until g.length).any { g.isTrackSelected(it) } }
         options += Triple(stringResource(R.string.player_subtitles_off), !anySelected) { controller.disableText(); onDone() }
+        // External Whisper-generated subtitle tracks appear as separate groups in ExoPlayer
+        // with language codes like "en", "nl", "es", "fr"
     }
     groups.forEach { group ->
         for (i in 0 until group.length) {
             if (!group.isTrackSupported(i)) continue
             val format = group.getTrackFormat(i)
-            options += Triple(vodTrackLabel(format.label, format.language, options.size), group.isTrackSelected(i)) {
+            val label = vodTrackLabel(format.label, format.language, options.size)
+            options += Triple(label, group.isTrackSelected(i)) {
                 controller.selectTrack(group, i); onDone()
             }
         }

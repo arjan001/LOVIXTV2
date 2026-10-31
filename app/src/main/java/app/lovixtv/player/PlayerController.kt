@@ -6,6 +6,7 @@
 package app.lovixtv.player
 
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -104,6 +105,11 @@ class PlayerController(
         /** Live streams are never resumed; VOD is. */
         val startPositionMillis: Long = 0L,
         val isLive: Boolean = true,
+        /**
+         * External subtitle tracks (e.g. Whisper-generated WebVTT) to attach to this media item.
+         * Each entry is a pair of (language code, subtitle URL).
+         */
+        val subtitleTracks: List<Pair<String, String>> = emptyList(),
     )
 
     private val _state = MutableStateFlow<State>(State.Idle)
@@ -272,6 +278,15 @@ class PlayerController(
             httpFactory.setDefaultRequestProperties(mapOf("User-Agent" to request.userAgent))
             _state.value = State.Buffering(request.title)
 
+            val subtitleConfigs = request.subtitleTracks.map { (language, subtitleUrl) ->
+                MediaItem.SubtitleConfiguration(
+                    Uri.parse(subtitleUrl),
+                    androidx.media3.common.MimeTypes.APPLICATION_SUBRIP,
+                    language,
+                    androidx.media3.common.SubtitleConfiguration.RoleFlags.SUBTITLES,
+                )
+            }
+
             val mediaItem = MediaItem.Builder()
                 .setUri(request.url)
                 .apply {
@@ -282,6 +297,10 @@ class PlayerController(
                                 .setTargetOffsetMs(LIVE_TARGET_OFFSET_MILLIS)
                                 .build(),
                         )
+                    }
+                    // Attach external subtitle tracks (e.g. Whisper-generated WebVTT/SRT)
+                    if (subtitleConfigs.isNotEmpty()) {
+                        setSubtitleConfigurations(subtitleConfigs)
                     }
                 }
                 .build()

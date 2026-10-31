@@ -54,7 +54,7 @@ class ApkInstaller(private val http: OkHttpClient) {
     ): File = withContext(Dispatchers.IO) {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         // A fixed name means each download overwrites the last rather than piling up copies.
-        val out = File(dir, "opentv-update.apk")
+        val out = File(dir, "lovixtv-update.apk")
 
         val request = Request.Builder().url(url).header("User-Agent", "OpenTV").build()
         http.newCall(request).execute().use { response ->
@@ -86,8 +86,9 @@ class ApkInstaller(private val http: OkHttpClient) {
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
-            putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            // Allow replacing an existing package — needed when the new APK has a different
+            // signature (e.g. release APK updating a debug-installed app on an emulator).
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         context.startActivity(intent)
     }

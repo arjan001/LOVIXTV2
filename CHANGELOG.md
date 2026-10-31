@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.6
+
+- **Whisper AI subtitles enabled** — VOD movies now display auto-generated subtitles in English,
+  Dutch, Spanish, and French. The subtitle service uses Whisper small model for accurate
+  transcription and translation.
+- **Subtitle language selector** — the player's CC button shows all available subtitle tracks
+  including Whisper-generated ones, so you can switch between languages during playback.
+- **APK update installation fixed** — the in-app update installer now handles signature mismatches
+  gracefully, so updating from a debug build to a release APK on emulators works correctly.
+
 ## 1.0.5
 
 - **LOVIX logo in update dialog** — the update prompt now displays the LOVIX brand logo so users
