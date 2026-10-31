@@ -30,11 +30,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Clean stale build cache
+        run: ./gradlew clean --stacktrace
+
       - name: Unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew test --no-build-cache --stacktrace
 
       - name: Assemble debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --no-build-cache --stacktrace
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
