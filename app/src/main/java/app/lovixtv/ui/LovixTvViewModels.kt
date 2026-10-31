@@ -737,6 +737,7 @@ class EpgViewModel(app: Application) : AndroidViewModel(app) {
 class VodViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = ServiceLocator.get(app)
     private val settings = graph.settings
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** One card in the Continue Watching shelf — a movie or episode with somewhere left to go. */
     data class ResumeItem(

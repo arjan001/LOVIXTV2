@@ -91,8 +91,12 @@ class ApkInstaller(private val http: OkHttpClient) {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             // Allow replacing an existing package even when signatures differ
             // (e.g. release APK updating a debug-installed app on an emulator).
-            putExtra(Intent.EXTRA_UNINSTALL_OLD_PACKAGE, true)
-            putExtra(Intent.EXTRA_ALLOW_REPLACE, true)
+            // EXTRA_UNINSTALL_OLD_PACKAGE and EXTRA_ALLOW_REPLACE are API 30+ constants;
+            // use the string literal keys so the app compiles on minSdk 23.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                putExtra("android.content.pm.extra.UNINSTALL_OLD_PACKAGE", true)
+                putExtra("android.content.pm.extra.ALLOW_REPLACE", true)
+            }
         }
         try {
             context.startActivity(intent)

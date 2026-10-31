@@ -19,10 +19,12 @@ import app.lovixtv.data.model.Channel
 import app.lovixtv.data.model.Episode
 import app.lovixtv.data.model.LiveStreamFormat
 import app.lovixtv.data.model.Movie
+import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.Series
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StreamKind
+import app.lovixtv.data.model.Tag
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.parser.M3uParser
 import app.lovixtv.data.parser.VodTitleCleaner
@@ -692,10 +694,9 @@ class CatalogRepository(
 
             // Store people (cast) and tags for UI shelves - cached in AppSettings
             if (result.people.isNotEmpty() || result.tags.isNotEmpty()) {
-                val peopleJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
-                    .encodeToString(app.lovixtv.data.model.Person.serializer().list, result.people)
-                val tagsJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
-                    .encodeToString(app.lovixtv.data.model.Tag.serializer().list, result.tags)
+                val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+                val peopleJson = json.encodeToString(List<Person>::class, result.people)
+                val tagsJson = json.encodeToString(List<Tag>::class, result.tags)
                 settings.loenixPeopleJson = peopleJson
                 settings.loenixTagsJson = tagsJson
                 Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags (cached)")
