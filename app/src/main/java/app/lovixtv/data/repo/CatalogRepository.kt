@@ -671,20 +671,27 @@ class CatalogRepository(
         val moviesOn = settings.moviesEnabled.value
         if (!moviesOn) return
 
-        val result = lovixApi.bootstrap(source)
+        try {
+            val result = lovixApi.bootstrap(source)
 
-        // Store categories (genres)
-        if (result.categories.isNotEmpty()) {
-            categoryDao.upsertAll(result.categories)
+            // Store categories (genres)
+            if (result.categories.isNotEmpty()) {
+                categoryDao.upsertAll(result.categories)
+            }
+
+            // Store movies
+            if (result.movies.isNotEmpty()) {
+                movieDao.upsertAll(result.movies)
+                Log.i(TAG, "LOVIX sync: ${result.movies.size} movies, ${result.categories.size} categories")
+            } else {
+                Log.w(TAG, "LOVIX sync: No movies returned from API. Check credentials and server URL.")
+            }
+
+            sourceDao.markCatalogSynced(source.id, nowUtcMillis)
+        } catch (e: Exception) {
+            Log.e(TAG, "LOVIX sync failed for source ${source.id}", e)
+            throw e // Re-throw so the UI can show the error
         }
-
-        // Store movies
-        if (result.movies.isNotEmpty()) {
-            movieDao.upsertAll(result.movies)
-            Log.i(TAG, "LOVIX sync: ${result.movies.size} movies, ${result.categories.size} categories")
-        }
-
-        sourceDao.markCatalogSynced(source.id, nowUtcMillis)
     }
 
     private suspend fun syncXtreamLive(source: Source, nowUtcMillis: Long): SyncResult {

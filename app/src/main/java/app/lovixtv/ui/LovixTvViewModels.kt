@@ -129,12 +129,21 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
             // LOVIX sources are VOD-only — skip live channel sync and load movies directly
             if (saved.kind == app.lovixtv.data.model.SourceKind.LOVIX) {
                 _ui.value = _ui.value.copy(syncMessage = "Loading movies…")
-                graph.catalogRepository.syncVod(saved, now)
-                _ui.value = _ui.value.copy(
-                    syncing = false,
-                    syncMessage = "Movies loaded from LOVIX server.",
-                )
-                onDone(true)
+                try {
+                    graph.catalogRepository.syncVod(saved, now)
+                    _ui.value = _ui.value.copy(
+                        syncing = false,
+                        syncMessage = "Movies loaded from LOVIX server.",
+                    )
+                    onDone(true)
+                } catch (e: Exception) {
+                    _ui.value = _ui.value.copy(
+                        syncing = false,
+                        syncMessage = "Failed to load movies: ${e.message}. Check your credentials and server URL.",
+                        testError = e.message
+                    )
+                    onDone(false)
+                }
                 return@launch
             }
 
