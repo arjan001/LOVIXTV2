@@ -1106,7 +1106,7 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The user-agent to play a movie/episode with (per source). */
     suspend fun userAgentForSource(sourceId: Long): String =
-        graph.sourceRepository.byId(sourceId)?.userAgent ?: "OpenTV/0.1 (Android)"
+        graph.sourceRepository.byId(sourceId)?.userAgent ?: "LOVIXTV/0.1 (Android)"
 }
 
 /**

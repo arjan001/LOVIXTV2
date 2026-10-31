@@ -284,7 +284,7 @@ fun HomeScreen(
             PlayerController.Request(
                 url = channel.streamUrl,
                 title = channel.shownName,
-                userAgent = source?.userAgent ?: "OpenTV/0.1 (Android)",
+                userAgent = source?.userAgent ?: "LOVIXTV/0.1 (Android)",
                 isLive = true,
             ),
             debounce = true,
@@ -727,7 +727,7 @@ fun HomeScreen(
                     RecordActionRow(stringResource(R.string.guide_open_external)) {
                         channelMenu = null
                         recordScope.launch {
-                            val ua = graph.sourceRepository.byId(channel.sourceId)?.userAgent ?: "OpenTV/0.1 (Android)"
+                            val ua = graph.sourceRepository.byId(channel.sourceId)?.userAgent ?: "LOVIXTV/0.1 (Android)"
                             val intent = Intent(Intent.ACTION_VIEW).apply {
                                 setDataAndType(android.net.Uri.parse(channel.streamUrl), "video/*")
                                 putExtra("title", channel.shownName)

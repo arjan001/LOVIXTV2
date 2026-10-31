@@ -228,7 +228,7 @@ fun PlayerScreen(
                 PlayerController.Request(
                     url = url,
                     title = channel.shownName,
-                    userAgent = source?.userAgent ?: "OpenTV/0.1 (Android)",
+                    userAgent = source?.userAgent ?: "LOVIXTV/0.1 (Android)",
                     isLive = true,
                 ),
                 debounce = false,

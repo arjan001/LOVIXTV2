@@ -373,7 +373,7 @@ class PlayerController(
     }
 
     private companion object {
-        const val DEFAULT_USER_AGENT = "OpenTV/0.1 (Android)"
+        const val DEFAULT_USER_AGENT = "LOVIXTV/0.1 (Android)"
 
         /** ExoPlayer's "do not retry" sentinel. */
         const val C_TIME_UNSET = androidx.media3.common.C.TIME_UNSET
