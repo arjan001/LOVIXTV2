@@ -28,7 +28,7 @@ import okhttp3.Request
  * - **Compares the tag, not a build number.** GitHub gives us a tag like `v0.2.0`. We parse it
  *   as a dotted version and compare it to our own [currentVersionName]. A release whose tag is
  *   not strictly newer is ignored, so re-tagging or a same-version hotfix will not prompt.
- * - **Skips drafts and pre-releases**, which are not meant for the general audience.
+ * - **Skips drafts only**. Pre-releases are included so beta/preview updates are detected.
  */
 class UpdateChecker(
     private val http: OkHttpClient,
@@ -61,7 +61,7 @@ class UpdateChecker(
                 if (body.isBlank()) return@withContext null
 
                 val release = json.decodeFromString<GitHubRelease>(body)
-                if (release.draft || release.prerelease) return@withContext null
+                if (release.draft) return@withContext null
 
                 val asset = release.apkAsset() ?: return@withContext null
                 if (!isNewer(release.tagName, currentVersionName)) return@withContext null
