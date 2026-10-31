@@ -24,7 +24,7 @@ import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StremioStream
 import app.lovixtv.data.model.StreamKind
 import app.lovixtv.data.model.Tag
-import kotlinx.serialization.ListSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
