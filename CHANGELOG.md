@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.19
+
+- **Fixed build failure** — removed `CategoryChips` call and unused `categories` state from
+  MoviesScreen that were causing "Unresolved reference" compilation errors after a concurrent
+  merge. The category filter chips are no longer needed on the home page navbar.
+
 ## 1.0.18
 
 - **Fixed compilation errors** — removed duplicate `import android.util.Log` in LovixTvViewModels.kt

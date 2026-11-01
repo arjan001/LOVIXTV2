@@ -86,7 +86,6 @@ fun MoviesScreen(
     val resume by viewModel.continueWatching.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedMovies.collectAsState()
     val genreRows by viewModel.movieGenreRows.collectAsState()
-    val categories by viewModel.movieCategories.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
     
     // Filter movies by selected tag
@@ -124,9 +123,6 @@ fun MoviesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    // null = the curated home rows; a category id = that category's full grid.
-    var browseCategory by remember { mutableStateOf<String?>(null) }
-
     val hasContent = resume.isNotEmpty() || recentlyAdded.isNotEmpty() ||
         genreRows.isNotEmpty()
 
@@ -137,16 +133,10 @@ fun MoviesScreen(
             ProviderChips(
                 sources = sources,
                 selected = selectedSource,
-                onSelectAll = { browseCategory = null; viewModel.selectVodSource(null) },
-                onSelectSource = { id -> browseCategory = null; viewModel.selectVodSource(id) },
+                onSelectAll = { viewModel.selectVodSource(null) },
+                onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        CategoryChips(
-            entries = categories.map { it.id to it.name },
-            selected = browseCategory,
-            onSelectHome = { browseCategory = null },
-            onSelectCategory = { id -> browseCategory = id; viewModel.selectMovieCategory(id) },
-        )
         // Phase 2: Cast/Creators shelf below navbar
         if (castPeople.isNotEmpty()) {
             CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
@@ -159,7 +149,6 @@ fun MoviesScreen(
         // unambiguously — the same reason Live TV weights its guide grid.
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                browseCategory != null -> MovieCategoryGrid(displayMovies, viewModel, onOpenMovie)
                 selectedTag != null -> MovieCategoryGrid(displayMovies, viewModel, onOpenMovie)
                 !hasContent -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
