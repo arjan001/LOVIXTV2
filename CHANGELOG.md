@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.21
+
+- **Modern inline search** — the home page search bar now opens a QWERTY keyboard at the bottom
+  of the screen with autocomplete suggestions as you type. Connected to the ViewModel for live
+  movie and series search results.
+- **Removed shelf labels** — the Tags and Cast shelves no longer display "Tags" or "Cast" headers;
+  they show only the actual tag chips and circular cast images. Shelves are hidden when empty.
+
 ## 1.0.20
 
 - **Fixed video playback** — when a movie's streamUrl is empty, the app now builds the URL from

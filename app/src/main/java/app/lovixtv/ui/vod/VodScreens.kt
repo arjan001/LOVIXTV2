@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.OutlinedButton
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.Movie
@@ -62,6 +64,7 @@ import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.Tag
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.ui.VodViewModel
+import app.lovixtv.ui.channels.OnScreenKeyboard
 import coil.compose.AsyncImage
 
 /**
@@ -127,7 +130,7 @@ fun MoviesScreen(
         genreRows.isNotEmpty()
 
     Column(Modifier.fillMaxSize()) {
-        SearchAffordance(onOpenSearch)
+        SearchAffordance(onOpenSearch, viewModel)
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
@@ -137,10 +140,10 @@ fun MoviesScreen(
                 onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        // Tags shelf - always shown so user sees the section
-        TagsShelf(tags = castTags, onTagClick = onTagClick)
-        // Cast/Creators shelf with rounded images - always shown
-        CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
+        // Tags shelf - show only actual tag data, no label
+        if (castTags.isNotEmpty()) TagsShelf(tags = castTags, onTagClick = onTagClick)
+        // Cast shelf - show only actual cast data, no label
+        if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
         // unambiguously — the same reason Live TV weights its guide grid.
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -232,7 +235,7 @@ fun SeriesScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        SearchAffordance(onOpenSearch)
+        SearchAffordance(onOpenSearch, viewModel)
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
@@ -242,10 +245,10 @@ fun SeriesScreen(
                 onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        // Tags shelf - always shown so user sees the section
-        TagsShelf(tags = castTags, onTagClick = onTagClick)
-        // Cast/Creators shelf with rounded images - always shown
-        CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
+        // Tags shelf - show only actual tag data, no label
+        if (castTags.isNotEmpty()) TagsShelf(tags = castTags, onTagClick = onTagClick)
+        // Cast shelf - show only actual cast data, no label
+        if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 categorySeries.isEmpty() -> when {
@@ -664,83 +667,126 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
 // ---- Search / loading / empty ------------------------------------------------------------------
 
 /**
- * Inline search bar with autocomplete suggestions and on-screen keyboard at the bottom.
- * Replaces the simple search button with a full search experience matching the web version.
+ * Modern inline search bar with autocomplete and on-screen QWERTY keyboard at the bottom.
+ * When focused, the keyboard appears at the bottom of the screen and autocomplete suggestions
+ * appear below the search bar. Connected to the ViewModel for live movie/series search results.
  */
 @Composable
-private fun SearchAffordance(onOpenSearch: () -> Unit) {
+private fun SearchAffordance(
+    onOpenSearch: () -> Unit,
+    viewModel: VodViewModel,
+) {
     var query by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
-    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val movieResults by viewModel.movieResults.collectAsState()
     
-    // When user starts typing, enter search mode
-    LaunchedEffect(query) {
-        if (query.isNotEmpty() && !searching) {
-            searching = true
-        } else if (query.isEmpty()) {
-            searching = false
-        }
+    // Autocomplete suggestions: top 5 matching movie titles
+    val suggestions = remember(query, movieResults) {
+        if (query.length >= 2) {
+            movieResults.take(5).map { it.displayTitle }
+        } else emptyList()
     }
     
-    if (searching) {
-        // Full search mode with keyboard at bottom
-        Column(Modifier.fillMaxWidth()) {
-            // Search input bar
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Filled.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary
+    // Update search query in ViewModel
+    LaunchedEffect(query) {
+        viewModel.setVodSearchQuery(query)
+    }
+    
+    Column(Modifier.fillMaxWidth()) {
+        // Search input bar
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    if (searching) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
                 )
-                Spacer(Modifier.width(12.dp))
+                .clickable {
+                    if (!searching) searching = true
+                }
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val tint = if (searching) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurfaceVariant
+            
+            Icon(Icons.Filled.Search, contentDescription = null, tint = tint)
+            Spacer(Modifier.width(12.dp))
+            
+            if (searching) {
+                // Active text input field
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    textStyle = MaterialTheme.typography.titleMedium.copy(
+                        color = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { innerTextField ->
+                        if (query.isEmpty()) {
+                            Text(
+                                stringResource(R.string.vod_search_hint),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                            )
+                        }
+                        innerTextField()
+                    },
+                )
+                Spacer(Modifier.width(8.dp))
+                // Done button to exit search mode
+                OutlinedButton(onClick = {
+                    query = ""
+                    searching = false
+                    viewModel.setVodSearchQuery("")
+                }) {
+                    Text(stringResource(R.string.common_done), color = MaterialTheme.colorScheme.onPrimary)
+                }
+            } else {
+                // Inactive state - shows hint text
                 Text(
-                    query.ifEmpty { stringResource(R.string.vod_search_hint) },
+                    stringResource(R.string.vod_search_hint),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = tint,
                     modifier = Modifier.weight(1f)
                 )
-                androidx.compose.material3.TextButton(
-                    onClick = { query = ""; searching = false }
-                ) {
+            }
+        }
+        
+        // Autocomplete suggestions dropdown
+        if (searching && suggestions.isNotEmpty()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(8.dp)
+            ) {
+                suggestions.forEach { suggestion ->
                     Text(
-                        stringResource(R.string.common_done),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        suggestion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { query = suggestion }
+                            .padding(vertical = 6.dp, horizontal = 12.dp)
                     )
                 }
             }
         }
-    } else {
-        // Simple search button - opens full search screen
-        var focused by remember { mutableStateOf(false) }
-        Row(
-            Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(
-                    if (focused) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                )
-                .onFocusChanged { focused = it.isFocused }
-                .clickable(onClick = onOpenSearch)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val tint = if (focused) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onSurfaceVariant
-            Icon(Icons.Filled.Search, contentDescription = null, tint = tint)
-            Spacer(Modifier.width(12.dp))
-            Text(
-                stringResource(R.string.vod_search_hint),
-                style = MaterialTheme.typography.titleMedium,
-                color = tint,
+        
+        // On-screen keyboard at the bottom when searching
+        if (searching) {
+            Spacer(Modifier.weight(1f))
+            OnScreenKeyboard(
+                onKey = { if (query.length < 40) query += it },
+                onSpace = { if (query.length < 40) query += " " },
+                onBackspace = { query = query.dropLast(1) },
+                onClear = { query = "" },
             )
         }
     }
@@ -861,15 +907,12 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 
 @Composable
 private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
-    Column(Modifier.fillMaxWidth()) {
-        SectionHeader("Tags")
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(tags, key = { it.name }) { tag ->
-                TagChip(tag, onTagClick)
-            }
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(tags, key = { it.name }) { tag ->
+            TagChip(tag, onTagClick)
         }
     }
 }
