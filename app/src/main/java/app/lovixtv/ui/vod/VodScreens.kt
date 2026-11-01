@@ -91,7 +91,6 @@ fun MoviesScreen(
     
     // Filter movies by selected tag
     val movies by viewModel.movies.collectAsState()
-    val selectedTag by viewModel.selectedTag.collectAsState()
     val filteredMovies = remember(selectedTag, movies) {
         val tag = selectedTag
         if (tag == null) movies

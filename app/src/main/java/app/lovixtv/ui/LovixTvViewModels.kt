@@ -28,10 +28,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
-import android.util.Log
 import app.lovixtv.data.repo.GenreGroup
-import android.util.Log
 import app.lovixtv.data.repo.MovieVariantGroup
+import android.util.Log
 import app.lovixtv.data.repo.PersonTitle
 import app.lovixtv.data.repo.distinctByQuality
 import app.lovixtv.R
