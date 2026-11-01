@@ -144,8 +144,14 @@ class LovixApi(
     /**
      * Builds the Xtream Codes stream URL for a movie.
      * Format: SERVER/movie/USERNAME/PASSWORD/ID.EXT
+     * If the API provides a direct stream_url, use that instead.
      */
-    fun buildStreamUrl(source: Source, movieId: String, extension: String? = null): String {
+    fun buildStreamUrl(source: Source, movieId: String, extension: String? = null, directUrl: String? = null): String {
+        // If API provides a direct stream URL, use it
+        if (!directUrl.isNullOrBlank()) {
+            return directUrl
+        }
+        
         val server = source.url.trimEnd('/')
         val username = source.username ?: ""
         val password = source.password ?: ""
@@ -207,7 +213,7 @@ class LovixApi(
                     ?: obj["duration"]?.toIntOrNull(),
                 containerExtension = obj["container_extension"]?.contentOrNull
                     ?.takeIf { it.isNotBlank() },
-                streamUrl = buildStreamUrl(source, id, obj["container_extension"]?.contentOrNull),
+                streamUrl = buildStreamUrl(source, id, obj["container_extension"]?.contentOrNull, obj["stream_url"]?.contentOrNull),
                 addedMillis = 0L,
                 backdropUrl = obj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
                 cast = joinPeopleList(obj["people"]),
@@ -239,7 +245,7 @@ class LovixApi(
                 ?: movieObj["duration"]?.toIntOrNull(),
             containerExtension = movieObj["container_extension"]?.contentOrNull
                 ?.takeIf { it.isNotBlank() },
-            streamUrl = buildStreamUrl(source, id, movieObj["container_extension"]?.contentOrNull),
+            streamUrl = buildStreamUrl(source, id, movieObj["container_extension"]?.contentOrNull, movieObj["stream_url"]?.contentOrNull),
             addedMillis = 0L,
             backdropUrl = movieObj["backdrop"]?.contentOrNull?.takeIf { it.isNotBlank() },
             cast = joinPeopleList(movieObj["people"]),
