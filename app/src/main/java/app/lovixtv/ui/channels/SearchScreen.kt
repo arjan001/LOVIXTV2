@@ -156,59 +156,59 @@ fun SearchScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        Row(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            // Results at the top
+            when {
+                query.isBlank() -> Hint(stringResource(R.string.search_start_hint))
+                query.trim().length < 2 -> Hint(stringResource(R.string.common_keep_typing))
+                !anyResults && filteredTags.isEmpty() && filteredPeople.isEmpty() -> Hint(stringResource(R.string.search_no_results, query))
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (channelResults.isNotEmpty()) {
+                        item { SectionHeader(stringResource(R.string.common_channels)) }
+                        items(channelResults, key = { "c${it.key}" }) { row ->
+                            SearchResultRow(row = row, onClick = { onPlayChannel(row.primary) })
+                        }
+                    }
+                    if (movieResults.isNotEmpty()) {
+                        item { SectionHeader(stringResource(R.string.nav_movies)) }
+                        items(movieResults, key = { "m${it.id}" }) { movie ->
+                            VodResultRow(movie.displayTitle, movie.posterUrl, movie.year?.toString()) {
+                                onPlayMovie(movie)
+                            }
+                        }
+                    }
+                    if (seriesResults.isNotEmpty()) {
+                        item { SectionHeader(stringResource(R.string.nav_shows)) }
+                        items(seriesResults, key = { "s${it.id}" }) { show ->
+                            VodResultRow(show.displayTitle, show.posterUrl, show.year?.toString()) {
+                                onOpenSeries(show)
+                            }
+                        }
+                    }
+                    if (filteredTags.isNotEmpty()) {
+                        item { SectionHeader("Tags") }
+                        items(filteredTags, key = { (it as? app.lovixtv.data.model.Tag)?.name ?: "" }) { tag ->
+                            TagResultRow(tag)
+                        }
+                    }
+                    if (filteredPeople.isNotEmpty()) {
+                        item { SectionHeader("Cast") }
+                        items(filteredPeople, key = { (it as? app.lovixtv.data.model.Person)?.id ?: 0 }) { person ->
+                            PersonResultRow(person)
+                        }
+                    }
+                }
+            }
+            
+            Spacer(Modifier.weight(1f))
+            
+            // Keyboard at the bottom
             OnScreenKeyboard(
                 onKey = { if (query.length < 40) query += it },
                 onSpace = { if (query.length < 40) query += " " },
                 onBackspace = { query = query.dropLast(1) },
                 onClear = { query = "" },
             )
-
-            Spacer(Modifier.width(28.dp))
-
-            Column(Modifier.weight(1f).fillMaxSize()) {
-                when {
-                    query.isBlank() -> Hint(stringResource(R.string.search_start_hint))
-                    query.trim().length < 2 -> Hint(stringResource(R.string.common_keep_typing))
-                    !anyResults && filteredTags.isEmpty() && filteredPeople.isEmpty() -> Hint(stringResource(R.string.search_no_results, query))
-                    else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (channelResults.isNotEmpty()) {
-                            item { SectionHeader(stringResource(R.string.common_channels)) }
-                            items(channelResults, key = { "c${it.key}" }) { row ->
-                                SearchResultRow(row = row, onClick = { onPlayChannel(row.primary) })
-                            }
-                        }
-                        if (movieResults.isNotEmpty()) {
-                            item { SectionHeader(stringResource(R.string.nav_movies)) }
-                            items(movieResults, key = { "m${it.id}" }) { movie ->
-                                VodResultRow(movie.displayTitle, movie.posterUrl, movie.year?.toString()) {
-                                    onPlayMovie(movie)
-                                }
-                            }
-                        }
-                        if (seriesResults.isNotEmpty()) {
-                            item { SectionHeader(stringResource(R.string.nav_shows)) }
-                            items(seriesResults, key = { "s${it.id}" }) { show ->
-                                VodResultRow(show.displayTitle, show.posterUrl, show.year?.toString()) {
-                                    onOpenSeries(show)
-                                }
-                            }
-                        }
-                        if (filteredTags.isNotEmpty()) {
-                            item { SectionHeader("Tags") }
-                            items(filteredTags, key = { (it as? app.lovixtv.data.model.Tag)?.name ?: "" }) { tag ->
-                                TagResultRow(tag)
-                            }
-                        }
-                        if (filteredPeople.isNotEmpty()) {
-                            item { SectionHeader("Cast") }
-                            items(filteredPeople, key = { (it as? app.lovixtv.data.model.Person)?.id ?: 0 }) { person ->
-                                PersonResultRow(person)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
