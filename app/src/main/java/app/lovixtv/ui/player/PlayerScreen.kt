@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -151,6 +152,20 @@ fun PlayerScreen(
     val tracks by controller.tracks.collectAsState()
     // What's recording right now, so the Record button can show as armed for this channel.
     val activeRecordings by graph.recordingRepository.observeActive().collectAsState(initial = emptyList())
+    
+    // Playback position for progress bar
+    var currentPosition by remember { mutableStateOf(0L) }
+    var duration by remember { mutableStateOf(0L) }
+    val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
+    
+    // Update playback position continuously
+    LaunchedEffect(controller.player) {
+        while (true) {
+            delay(100)
+            currentPosition = controller.player.currentPosition
+            duration = controller.player.duration
+        }
+    }
 
     // Hold the screen awake while the player is on screen. A view-level keepScreenOn flag isn't
     // reliable on every TV box, so we set the window flag on the Activity directly — that's what
@@ -206,11 +221,6 @@ fun PlayerScreen(
     val panelFocus = remember { FocusRequester() }
     val rootFocus = remember { FocusRequester() }
     val listFocus = remember { FocusRequester() }
-
-    // Long-press detection for remote control
-    var leftPressStart by remember { mutableStateOf(0L) }
-    var rightPressStart by remember { mutableStateOf(0L) }
-    val LONG_PRESS_THRESHOLD = 500L // 500ms for long press
 
     // The channel list you were browsing, for channel up/down and the in-player list. Snapshotted
     // on entry so it doesn't shift under you mid-session.
@@ -385,15 +395,13 @@ fun PlayerScreen(
                     // channel banner, then it auto-hides.
                     event.key == Key.DirectionUp || event.key == Key.ChannelUp -> { zapBy(-1); reveal(); true }
                     event.key == Key.DirectionDown || event.key == Key.ChannelDown -> { zapBy(1); reveal(); true }
-                    // With the bar up, left/right drive its buttons; let them through.
+                    // Left/right always handle seeking on Android TV via remote, regardless of controls visibility
+                    event.key == Key.DirectionLeft -> { controller.seekBackward(); reveal(); true }
+                    event.key == Key.DirectionRight -> { controller.seekForward(); reveal(); true }
+                    // With the bar up, let other keys drive its buttons
                     controlsVisible -> {
                         interaction++
                         false
-                    }
-                    // Immersive: left opens the channel list, right the quality picker.
-                    event.key == Key.DirectionLeft -> { if (queue.isNotEmpty()) channelListVisible = true; true }
-                    event.key == Key.DirectionRight -> {
-                        if (variants.size > 1) { reveal(); panel = Panel.QUALITY }; true
                     }
                     else -> { reveal(); true }
                 }
@@ -408,7 +416,7 @@ fun PlayerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .onPreviewKeyEvent { keyEvent ->
-                    // Remote control key handling with long-press detection
+                    // Remote control key handling
                     when (keyEvent.key) {
                         Key.DirectionCenter -> {
                             // OK button: toggle play/pause
@@ -417,40 +425,6 @@ fun PlayerScreen(
                                 interaction++
                                 true
                             } else false
-                        }
-                        Key.DirectionLeft -> {
-                            when (keyEvent.type) {
-                                KeyEventType.KeyDown -> {
-                                    leftPressStart = System.currentTimeMillis()
-                                    true
-                                }
-                                KeyEventType.KeyUp -> {
-                                    val pressDuration = System.currentTimeMillis() - leftPressStart
-                                    val seekAmount = if (pressDuration >= LONG_PRESS_THRESHOLD) 30000 else 10000
-                                    controller.seekTo(controller.player.currentPosition - seekAmount)
-                                    leftPressStart = 0L
-                                    interaction++
-                                    true
-                                }
-                                else -> false
-                            }
-                        }
-                        Key.DirectionRight -> {
-                            when (keyEvent.type) {
-                                KeyEventType.KeyDown -> {
-                                    rightPressStart = System.currentTimeMillis()
-                                    true
-                                }
-                                KeyEventType.KeyUp -> {
-                                    val pressDuration = System.currentTimeMillis() - rightPressStart
-                                    val seekAmount = if (pressDuration >= LONG_PRESS_THRESHOLD) 30000 else 10000
-                                    controller.seekTo(controller.player.currentPosition + seekAmount)
-                                    rightPressStart = 0L
-                                    interaction++
-                                    true
-                                }
-                                else -> false
-                            }
                         }
                         else -> false
                     }
@@ -576,13 +550,18 @@ fun PlayerScreen(
                     Spacer(Modifier.height(12.dp))
                 }
 
+                // Progress bar for VOD/movies (not live streams)
+                if (controller.isSeekable && duration > 0) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.White.copy(alpha = 0.3f),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (controller.isSeekable) {
-                        BarChip(Icons.Filled.FastRewind, stringResource(R.string.player_rewind), false) {
-                            controller.seekBackward(); interaction++
-                        }
-                        Spacer(Modifier.width(10.dp))
-                    }
                     BarChip(
                         icon = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
                         label = if (paused) stringResource(R.string.common_play) else stringResource(R.string.player_pause),
@@ -592,12 +571,6 @@ fun PlayerScreen(
                         paused = !paused
                         controller.player.playWhenReady = !paused
                         interaction++
-                    }
-                    if (controller.isSeekable) {
-                        Spacer(Modifier.width(10.dp))
-                        BarChip(Icons.Filled.FastForward, stringResource(R.string.player_forward), false) {
-                            controller.seekForward(); interaction++
-                        }
                     }
 
                     Spacer(Modifier.width(20.dp))
