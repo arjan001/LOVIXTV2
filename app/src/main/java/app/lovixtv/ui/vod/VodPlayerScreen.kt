@@ -201,13 +201,16 @@ fun VodPlayerScreen(
     val subtitleCache = remember { SubtitleCache(context, graph.streamingHttpClient) }
 
     // Build server subtitle track URLs from the LOVIX subtitle service (port 6970).
-    val serverSubtitleTracks = remember(streamUrl, mediaKey) {
+    // Uses the configurable subtitle server URL from AppSettings, defaulting to vpn.istreamix.com.
+    val subtitleServerHost = graph.settings.subtitleServer.value.ifEmpty { "vpn.istreamix.com" }
+    val serverSubtitleTracks = remember(streamUrl, mediaKey, subtitleServerHost) {
         val serverUrl = runCatching {
-            val url = streamUrl.substringBefore("/movie/")
-            if (url.startsWith("http://") || url.startsWith("https://")) url else "http://$url"
+            val host = subtitleServerHost
+            if (host.startsWith("http://") || host.startsWith("https://")) host else "http://$host"
         }.getOrNull()?.trimEnd('/')
 
-        val languages = listOf("en", "nl", "es", "fr")
+        // Only include the languages the user wants: French, Spanish, Dutch (Belgium)
+        val languages = listOf("fr", "es", "nl")
         serverUrl?.let { base ->
             languages.map { code ->
                 val subtitleUrl = "$base:6970/subtitles/${mediaKey}.vtt?lang=$code&position=0"
@@ -219,7 +222,7 @@ fun VodPlayerScreen(
     // Resolved subtitle tracks: cached file URIs or server URIs (with fallback to stale cache).
     var resolvedSubtitleTracks by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
 
-    LaunchedEffect(mediaKey, streamUrl) {
+    LaunchedEffect(mediaKey, streamUrl, subtitleServerHost) {
         // Resolve subtitle tracks through cache (uses local files when server is down)
         val resolved = subtitleCache.resolveTracks(mediaKey, serverSubtitleTracks)
         resolvedSubtitleTracks = resolved.map { (lang, uri) -> lang to uri.toString() }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.25
+
+- **Whisper subtitles fixed** — subtitle service now binds to `0.0.0.0` on the VPS so the Android
+  app can reach it over the network. Subtitle server URL is configurable in app settings, defaulting
+  to `vpn.istreamix.com`.
+- **Subtitle languages** — focused on French, Spanish, and Dutch (Belgium) as requested. English
+  removed from the default subtitle track list.
+- **Subtitle caching** — subtitles are cached locally after first download, so they play even when
+  the server is temporarily unreachable.
+
 ## 1.0.24
 
 - **Dynamic tag counts** — tags are no longer hardcoded with static counts; the app scans all movies

@@ -243,6 +243,16 @@ class AppSettings private constructor(context: Context) {
         _languageTag.value = tag
     }
 
+    /** Subtitle server URL for Whisper-generated subtitles (e.g., "vpn.istreamix.com"). */
+    private val _subtitleServer = MutableStateFlow(prefs.getString(KEY_SUBTITLE_SERVER, DEFAULT_SUBTITLE_SERVER).orEmpty())
+    val subtitleServer: StateFlow<String> = _subtitleServer.asStateFlow()
+
+    fun setSubtitleServer(server: String) {
+        val trimmed = server.trim()
+        prefs.edit().putString(KEY_SUBTITLE_SERVER, trimmed).apply()
+        _subtitleServer.value = trimmed
+    }
+
     /** The last channel played, for boot-to-last-channel. Not a flow — only read once at launch. */
     var lastChannelId: Long
         get() = prefs.getLong(KEY_LAST_CHANNEL, 0L)
@@ -474,6 +484,8 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_PAD_END = "rec_pad_end_min"
         private const val KEY_REC_AUTOSWITCH = "rec_auto_switch"
         private const val KEY_LIVE_PAUSE = "live_pause_enabled"
+        private const val KEY_SUBTITLE_SERVER = "subtitle_server_url"
+        private const val DEFAULT_SUBTITLE_SERVER = "vpn.istreamix.com"
 
         @Volatile private var instance: AppSettings? = null
 
