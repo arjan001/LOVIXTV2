@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.23
+
+- **Search navigation fixed** — pressing Enter or clicking a suggestion now opens the first matching
+  movie directly. Search results include tags and actors alongside movie titles.
+- **Continue Watching layout fixed** — the section now appears at the top of the home page in its
+  own row, above the main film grid, without breaking the layout.
+- **Hardcoded tags added** — 100+ tags with counts (Blonde, MILF, Anal, etc.) are always available
+  on the home page navbar, even when the API returns no tag data.
+- **QR code login** — Smart TV users can now scan a QR code from their phone to sign in instead of
+  typing credentials with a remote.
+- **On-screen keyboard OK button** — added an OK/Enter key to the virtual keyboard for confirming
+  search results.
+
 ## 1.0.22
 
 - **Fixed video player remote controls** — replaced `Key.DpadLeft`/`Key.DpadRight` with the correct

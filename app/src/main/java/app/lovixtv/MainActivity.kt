@@ -318,6 +318,11 @@ private fun LovixTvApp(isTelevision: Boolean) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                         }
                     },
+                    onScanQr = {
+                        navController.navigate(Routes.ADD_SOURCE) {
+                            popUpTo(Routes.LOGIN) { inclusive = true }
+                        }
+                    },
                 )
             }
 

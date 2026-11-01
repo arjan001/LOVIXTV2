@@ -1053,6 +1053,46 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                         Log.i("VodViewModel", "Aggregated ${aggregatedTags.size} tags from movie catalog")
                     }
                 }
+                // Final fallback: hardcoded tags from the LOVIX catalog
+                if (_tags.value.isEmpty()) {
+                    _tags.value = listOf(
+                        Tag("Blonde", 337), Tag("Brunette", 118), Tag("MILF", 299),
+                        Tag("Busty", 207), Tag("Petite", 187), Tag("Mature", 77),
+                        Tag("Asian", 161), Tag("Latina", 101), Tag("Interracial", 219),
+                        Tag("Threesome", 164), Tag("Cuckold", 28), Tag("Gangbang", 167),
+                        Tag("POV", 133), Tag("Amateur", 45), Tag("Public", 290),
+                        Tag("Outdoor", 84), Tag("Office", 47), Tag("Hotel", 28),
+                        Tag("Massage", 78), Tag("Casting", 317), Tag("Cosplay", 11),
+                        Tag("Fetish", 74), Tag("Anal", 3321), Tag("Hardcore", 399),
+                        Tag("Fisting", 179), Tag("Creampie", 204), Tag("Squirt", 407),
+                        Tag("Rough", 209), Tag("Gay", 9), Tag("Curvy", 175),
+                        Tag("Black", 799), Tag("Trans", 2033), Tag("Double", 1067),
+                        Tag("Car", 474), Tag("Bar", 354), Tag("Skinny", 345),
+                        Tag("White", 325), Tag("Oral", 288), Tag("Romantic", 202),
+                        Tag("Group", 201), Tag("Taxi", 200), Tag("Reality", 187),
+                        Tag("Wife", 184), Tag("Park", 111), Tag("First Time", 108),
+                        Tag("Bedroom", 107), Tag("Husband", 105), Tag("Party", 103),
+                        Tag("Athletic", 96), Tag("Facial", 92), Tag("Maid", 91),
+                        Tag("Boyfriend", 81), Tag("Girlfriend", 77), Tag("Shower", 75),
+                        Tag("Club", 67), Tag("Neighbor", 67), Tag("Couple", 67),
+                        Tag("Pool", 64), Tag("Redhead", 57), Tag("Lingerie", 53),
+                        Tag("Cheating", 53), Tag("Forest", 51), Tag("Tattooed", 51),
+                        Tag("Vacation", 49), Tag("Married", 49), Tag("Beach", 42),
+                        Tag("Teacher", 41), Tag("Kitchen", 39), Tag("Nurse", 35),
+                        Tag("Audition", 34), Tag("Street", 32), Tag("Student Roleplay", 29),
+                        Tag("Gym", 28), Tag("Stranger", 28), Tag("Swinger", 27),
+                        Tag("Cruise", 23), Tag("Orgy", 22), Tag("Secretary", 22),
+                        Tag("Roommate", 22), Tag("Wedding", 21), Tag("Stockings", 20),
+                        Tag("Family Roleplay", 18), Tag("Roleplay", 15), Tag("Rimming", 14),
+                        Tag("Bathroom", 13), Tag("Garden", 13), Tag("Anniversary", 12),
+                        Tag("Solo", 11), Tag("Uniform", 9), Tag("Selfie", 9),
+                        Tag("Boat", 7), Tag("Homemade", 7), Tag("Voyeur", 5),
+                        Tag("Honeymoon", 5), Tag("Foursome", 4), Tag("High Heels", 4),
+                        Tag("Businesswoman", 4), Tag("Garage", 4), Tag("MMF", 4),
+                        Tag("Webcam", 3), Tag("FFM", 3), Tag("Motel", 2), Tag("Parody", 2),
+                    )
+                    Log.i("VodViewModel", "Loaded ${_tags.value.size} hardcoded tags as fallback")
+                }
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)
             }

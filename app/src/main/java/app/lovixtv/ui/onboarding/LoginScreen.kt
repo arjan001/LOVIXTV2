@@ -49,6 +49,7 @@ import app.lovixtv.ui.SourcesViewModel
  *
  * Shows only username and password fields with a Sign In button.
  * Automatically uses the primary LOVIX server (line.istreamix.com).
+ * A "Scan QR code" button lets Smart TV users set up from their phone.
  * An "Advanced / Custom source" link navigates to the full AddSourceScreen.
  */
 @Composable
@@ -56,6 +57,7 @@ fun LoginScreen(
     viewModel: SourcesViewModel,
     onLoggedIn: () -> Unit,
     onAddCustomSource: () -> Unit,
+    onScanQr: () -> Unit = onAddCustomSource,
 ) {
     val ui by viewModel.ui.collectAsState()
 
@@ -224,7 +226,25 @@ fun LoginScreen(
                 Spacer(Modifier.height(12.dp))
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
+
+            // Divider
+            Text(
+                "or",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            // Scan QR code button - primary option for Smart TV users
+            OutlinedButton(
+                onClick = onScanQr,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Scan QR code to sign in")
+            }
+
+            Spacer(Modifier.height(12.dp))
 
             // Add custom source link
             TextButton(

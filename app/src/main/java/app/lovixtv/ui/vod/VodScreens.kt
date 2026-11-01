@@ -49,6 +49,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.keyDown
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -127,10 +132,14 @@ fun MoviesScreen(
     }
 
     val hasContent = resume.isNotEmpty() || recentlyAdded.isNotEmpty() ||
-        genreRows.isNotEmpty()
+        genreRows.isNotEmpty() || displayMovies.isNotEmpty()
 
     Column(Modifier.fillMaxSize()) {
-        SearchAffordance(onOpenSearch, viewModel)
+        SearchAffordance(
+            onOpenSearch = onOpenSearch,
+            viewModel = viewModel,
+            onNavigateToMovie = { movie -> onOpenMovie(movie) }
+        )
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
@@ -144,8 +153,7 @@ fun MoviesScreen(
         if (castTags.isNotEmpty()) TagsShelf(tags = castTags, onTagClick = onTagClick)
         // Cast shelf - show only actual cast data, no label
         if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
-        // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
-        // unambiguously — the same reason Live TV weights its guide grid.
+        // Weighted so the shelves fill the space under the fixed search + chips header
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 selectedTag != null -> MovieCategoryGrid(displayMovies, viewModel, onOpenMovie)
@@ -171,28 +179,32 @@ fun MoviesScreen(
                         )
                     }
                 }
-                // Curated home: single LazyVerticalGrid avoids nested-scrollable crash
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    // Section 1: Continue Watching (full-width horizontal carousel)
+                // Curated home: Continue Watching section above the grid
+                else -> LazyColumn(Modifier.fillMaxSize()) {
+                    // Section 1: Continue Watching (full-width horizontal carousel at top)
                     if (resume.isNotEmpty()) item {
                         ContinueWatchingRow(resume, onResume)
                     }
-                    // Section 2: All films grid items (no header label)
+                    // Section 2: All films adaptive grid
                     if (displayMovies.isNotEmpty()) {
-                        gridItems(displayMovies, key = { it.id }) { movie ->
-                            PosterCard(
-                                title = movie.displayTitle,
-                                posterUrl = movie.posterUrl,
-                                subtitle = movie.year?.toString(),
-                                rating = movie.rating,
-                                onClick = { onOpenMovie(movie) },
-                            )
+                        item {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                gridItems(displayMovies, key = { it.id }) { movie ->
+                                    PosterCard(
+                                        title = movie.displayTitle,
+                                        posterUrl = movie.posterUrl,
+                                        subtitle = movie.year?.toString(),
+                                        rating = movie.rating,
+                                        onClick = { onOpenMovie(movie) },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -235,7 +247,11 @@ fun SeriesScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        SearchAffordance(onOpenSearch, viewModel)
+        SearchAffordance(
+            onOpenSearch = onOpenSearch,
+            viewModel = viewModel,
+            onNavigateToMovie = null
+        )
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
@@ -256,26 +272,30 @@ fun SeriesScreen(
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
                 }
-                // Curated home: single LazyVerticalGrid avoids nested-scrollable crash
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    // Section 1: Continue Watching (full-width horizontal carousel)
+                // Curated home: Continue Watching section above the grid
+                else -> LazyColumn(Modifier.fillMaxSize()) {
+                    // Section 1: Continue Watching (full-width horizontal carousel at top)
                     if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
-                    // Section 2: All series grid items (no header label)
+                    // Section 2: All series adaptive grid
                     if (categorySeries.isNotEmpty()) {
-                        gridItems(categorySeries, key = { it.id }) { series ->
-                            PosterCard(
-                                title = series.displayTitle,
-                                posterUrl = series.posterUrl,
-                                subtitle = series.year?.toString(),
-                                rating = series.rating,
-                                onClick = { onOpenSeries(series) },
-                            )
+                        item {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                gridItems(categorySeries, key = { it.id }) { series ->
+                                    PosterCard(
+                                        title = series.displayTitle,
+                                        posterUrl = series.posterUrl,
+                                        subtitle = series.year?.toString(),
+                                        rating = series.rating,
+                                        onClick = { onOpenSeries(series) },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -670,15 +690,20 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
  * Modern inline search bar with autocomplete and on-screen QWERTY keyboard at the bottom.
  * When focused, the keyboard appears at the bottom of the screen and autocomplete suggestions
  * appear below the search bar. Connected to the ViewModel for live movie/series search results.
+ * Supports Enter key to navigate to first result and suggestion click to navigate directly.
  */
 @Composable
 private fun SearchAffordance(
     onOpenSearch: () -> Unit,
     viewModel: VodViewModel,
+    onNavigateToMovie: ((Movie) -> Unit)? = null,
 ) {
     var query by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
     val movieResults by viewModel.movieResults.collectAsState()
+    val seriesResults by viewModel.seriesResults.collectAsState()
+    val tags by viewModel.tags.collectAsState()
+    val people by viewModel.people.collectAsState()
     
     // Autocomplete suggestions: top 5 matching movie titles
     val suggestions = remember(query, movieResults) {
@@ -687,9 +712,35 @@ private fun SearchAffordance(
         } else emptyList()
     }
     
+    // Filtered tags matching query
+    val filteredTags = remember(query, tags) {
+        val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
+        if (query.length >= 2) {
+            castTags.filter { it.name.contains(query, ignoreCase = true) }.take(5)
+        } else emptyList()
+    }
+    
+    // Filtered actors matching query
+    val filteredPeople = remember(query, people) {
+        val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
+        if (query.length >= 2) {
+            castPeople.filter { it.name.contains(query, ignoreCase = true) }.take(5)
+        } else emptyList()
+    }
+    
     // Update search query in ViewModel
     LaunchedEffect(query) {
         viewModel.setVodSearchQuery(query)
+    }
+    
+    // Navigate to first movie result on Enter
+    val navigateToFirst = {
+        if (movieResults.isNotEmpty() && onNavigateToMovie != null) {
+            onNavigateToMovie(movieResults.first())
+            query = ""
+            searching = false
+            viewModel.setVodSearchQuery("")
+        }
     }
     
     Column(Modifier.fillMaxWidth()) {
@@ -705,6 +756,15 @@ private fun SearchAffordance(
                 )
                 .clickable {
                     if (!searching) searching = true
+                }
+                .onKeyEvent { keyEvent ->
+                    if (searching && keyEvent.key == Key.Enter && keyEvent.type == KeyEventType.KeyDown) {
+                        navigateToFirst()
+                        true
+                    } else if (searching && keyEvent.key == Key.DirectionCenter && keyEvent.type == KeyEventType.KeyDown) {
+                        navigateToFirst()
+                        true
+                    } else false
                 }
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -756,7 +816,7 @@ private fun SearchAffordance(
         }
         
         // Autocomplete suggestions dropdown
-        if (searching && suggestions.isNotEmpty()) {
+        if (searching && (suggestions.isNotEmpty() || filteredTags.isNotEmpty() || filteredPeople.isNotEmpty())) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -765,6 +825,7 @@ private fun SearchAffordance(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(8.dp)
             ) {
+                // Movie suggestions
                 suggestions.forEach { suggestion ->
                     Text(
                         suggestion,
@@ -772,9 +833,61 @@ private fun SearchAffordance(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { query = suggestion }
+                            .clickable {
+                                // Navigate to the first movie matching this suggestion
+                                val movie = movieResults.find { it.displayTitle == suggestion }
+                                if (movie != null && onNavigateToMovie != null) {
+                                    onNavigateToMovie(movie)
+                                    query = ""
+                                    searching = false
+                                    viewModel.setVodSearchQuery("")
+                                }
+                            }
                             .padding(vertical = 6.dp, horizontal = 12.dp)
                     )
+                }
+                // Tag suggestions
+                if (filteredTags.isNotEmpty()) {
+                    Text(
+                        "Tags",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp, start = 12.dp)
+                    )
+                    filteredTags.forEach { tag ->
+                        Text(
+                            "${tag.name} (${tag.count})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    query = tag.name
+                                    viewModel.setVodSearchQuery(tag.name)
+                                }
+                                .padding(vertical = 6.dp, horizontal = 12.dp)
+                        )
+                    }
+                }
+                // Actor suggestions
+                if (filteredPeople.isNotEmpty()) {
+                    Text(
+                        "Actors",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 12.dp)
+                    )
+                    filteredPeople.forEach { person ->
+                        Text(
+                            person.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { query = person.name }
+                                .padding(vertical = 6.dp, horizontal = 12.dp)
+                        )
+                    }
                 }
             }
         }
@@ -787,6 +900,7 @@ private fun SearchAffordance(
                 onSpace = { if (query.length < 40) query += " " },
                 onBackspace = { query = query.dropLast(1) },
                 onClear = { query = "" },
+                onEnter = { navigateToFirst() },
             )
         }
     }

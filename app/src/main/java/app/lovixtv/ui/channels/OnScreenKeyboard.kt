@@ -51,6 +51,7 @@ internal fun OnScreenKeyboard(
     onSpace: () -> Unit,
     onBackspace: () -> Unit,
     onClear: () -> Unit,
+    onEnter: (() -> Unit)? = null,
 ) {
     val keyRows = listOf("1234567890", "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM")
     val firstKey = remember { FocusRequester() }
@@ -83,6 +84,9 @@ internal fun OnScreenKeyboard(
             )
             KeyCap(label = stringResource(R.string.kbd_del), icon = true, wide = 2, onClick = onBackspace)
             KeyCap(label = stringResource(R.string.kbd_clear), wide = 2, onClick = onClear)
+            onEnter?.let {
+                KeyCap(label = "OK", wide = 2, onClick = it)
+            }
         }
     }
 
