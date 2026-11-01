@@ -77,6 +77,8 @@ fun MoviesScreen(
     hasSources: Boolean,
     isSyncing: Boolean,
     onOpenPerson: (String) -> Unit = {},
+    onTagClick: (String) -> Unit = {},
+    showFavouritesOnly: Boolean = false,
     viewModel: VodViewModel = viewModel(),
 ) {
     val categories by viewModel.movieCategories.collectAsState()
@@ -84,7 +86,23 @@ fun MoviesScreen(
     val recommended by viewModel.recommendedMovies.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedMovies.collectAsState()
     val genreRows by viewModel.movieGenreRows.collectAsState()
-    val categoryMovies by viewModel.movies.collectAsState()
+    val selectedTag by viewModel.selectedTag.collectAsState()
+    
+    // Filter movies by selected tag
+    val movies by viewModel.movies.collectAsState()
+    val filteredMovies = remember(selectedTag, movies) {
+        if (selectedTag == null) movies
+        else movies.filter { movie ->
+            movie.genre?.contains(selectedTag, ignoreCase = true) == true
+        }
+    }
+    
+    // Filter for favourites only
+    val displayMovies = remember(showFavouritesOnly, filteredMovies) {
+        if (showFavouritesOnly) filteredMovies.filter { it.favourite }
+        else filteredMovies
+    }
+    
     val vodLoading by viewModel.vodLoading.collectAsState()
     val sources by viewModel.sources.collectAsState()
     val selectedSource by viewModel.selectedVodSource.collectAsState()
@@ -130,13 +148,14 @@ fun MoviesScreen(
         }
         // Phase 2: Tags shelf with counts
         if (castTags.isNotEmpty()) {
-            TagsShelf(tags = castTags)
+            TagsShelf(tags = castTags, onTagClick = onTagClick)
         }
         // Weighted so the shelves fill the space under the fixed search + chips header, exactly and
         // unambiguously — the same reason Live TV weights its guide grid.
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                browseCategory != null -> MovieCategoryGrid(categoryMovies, viewModel, onOpenMovie)
+                browseCategory != null -> MovieCategoryGrid(displayMovies, viewModel, onOpenMovie)
+                selectedTag != null -> MovieCategoryGrid(displayMovies, viewModel, onOpenMovie)
                 !hasContent -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
@@ -770,7 +789,7 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 // ---- Phase 2: Tags Shelf -----------------------------------------------------------------------
 
 @Composable
-private fun TagsShelf(tags: List<Tag>) {
+private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
     Column(Modifier.fillMaxWidth()) {
         SectionHeader("Tags")
         LazyRow(
@@ -778,14 +797,14 @@ private fun TagsShelf(tags: List<Tag>) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(tags, key = { it.name }) { tag ->
-                TagChip(tag)
+                TagChip(tag, onTagClick)
             }
         }
     }
 }
 
 @Composable
-private fun TagChip(tag: Tag) {
+private fun TagChip(tag: Tag, onTagClick: (String) -> Unit = {}) {
     var focused by remember { mutableStateOf(false) }
     val bg = when {
         focused -> MaterialTheme.colorScheme.primary
@@ -800,7 +819,7 @@ private fun TagChip(tag: Tag) {
             .onFocusChanged { focused = it.isFocused }
             .clip(RoundedCornerShape(20.dp))
             .background(bg)
-            .clickable(onClick = {})
+            .clickable(onClick = { onTagClick(tag.name) })
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -812,6 +831,12 @@ private fun TagChip(tag: Tag) {
         )
         Spacer(Modifier.width(6.dp))
         Text(
+            "${tag.count}",
+            style = MaterialTheme.typography.labelSmall,
+            color = fg,
+        )
+    }
+}
             "${tag.count}",
             style = MaterialTheme.typography.labelSmall,
             color = fg.copy(alpha = 0.7f),

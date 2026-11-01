@@ -877,6 +877,13 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _tags = MutableStateFlow<List<Tag>>(emptyList())
     val tags: StateFlow<List<Tag>> = _tags.asStateFlow()
+    
+    private val _selectedTag = MutableStateFlow<String?>(null)
+    val selectedTag: StateFlow<String?> = _selectedTag.asStateFlow()
+    
+    fun selectTag(tagName: String?) {
+        _selectedTag.value = tagName
+    }
 
     /** The (profile, catalogue) the computed rows were last built for — the redundant-reload guard. */
     private data class HomeFeedsKey(val profileId: Long, val movieCount: Int, val seriesCount: Int)
@@ -1014,7 +1021,11 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
         _vodLoading.value = false
         // Stamp the cache only when the fetch actually succeeded, so a failed sync retries on the
         // next open instead of being remembered as "fresh" and leaving the user with no catalogue.
-        if (synced) settings.vodSyncedAtMillis = now
+        if (synced) {
+            settings.vodSyncedAtMillis = now
+            // Load LOVIX metadata (tags and people) after successful sync
+            loadLovixMetadata()
+        }
         // The catalogue may have grown — recompute the computed home rows off the fresh data.
         loadHomeFeeds()
     }
@@ -1046,10 +1057,16 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun loadLovixMetadata() {
         viewModelScope.launch {
-            // For now, tags and people are loaded during VOD sync
-            // In the future, we could load them separately
-            _tags.value = emptyList()
-            _people.value = emptyList()
+            try {
+                val source = graph.sourceRepository.enabled().firstOrNull()
+                if (source != null) {
+                    val bootstrap = graph.catalogRepository.syncLovixBootstrap(source)
+                    _tags.value = bootstrap.tags
+                    _people.value = bootstrap.people
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load LOVIX metadata", e)
+            }
         }
     }
 
