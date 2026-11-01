@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.17
+
+- **Removed shelf labels** — the home page Tags and Cast shelves no longer display "Tags" or
+  "Cast & Creators" headers; only the actual tag chips and circular cast images appear.
+- **Removed "All" section header** — the movie and series grids start directly with poster cards
+  instead of an "All" label, eliminating the UI glitch where a card slot was skipped.
+- **Changed default login server** — primary LOVIX provider is now `vpn.istreamix.com` so users
+  only need to enter username and password on first launch.
+- **Conditional shelf display** — Tags and Cast shelves only render when data is available,
+  preventing empty rows on the home page.
+
 ## 1.0.16
 
 - **Removed "Recently Added" section** — the Movies and Shows home screens now show only Continue

@@ -113,10 +113,10 @@ fun MoviesScreen(
                 onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        // Tags shelf with movie counts - always shown so user sees the section
-        TagsShelf(tags = castTags)
-        // Cast/Creators shelf with rounded images - always shown
-        CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
+        // Tags shelf — no label, just the chips
+        if (castTags.isNotEmpty()) TagsShelf(tags = castTags)
+        // Cast shelf — no label, just the circular cards
+        if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         // Scrollable content area
         val displayMovies = if (favoritesOnly) favoriteMovies else categoryMovies
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -159,10 +159,7 @@ fun MoviesScreen(
                     if (resume.isNotEmpty()) item {
                         ContinueWatchingRow(resume, onResume)
                     }
-                    // Section 2: All films header + grid items
-                    if (displayMovies.isNotEmpty()) item {
-                        SectionHeader(stringResource(R.string.vod_all))
-                    }
+                    // Section 2: All films grid items (no header label)
                     if (displayMovies.isNotEmpty()) {
                         gridItems(displayMovies, key = { it.id }) { movie ->
                             PosterCard(
@@ -233,10 +230,7 @@ fun SeriesScreen(
                 ) {
                     // Section 1: Continue Watching (full-width horizontal carousel)
                     if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
-                    // Section 2: All series header + grid items
-                    if (categorySeries.isNotEmpty()) item {
-                        SectionHeader(stringResource(R.string.vod_all))
-                    }
+                    // Section 2: All series grid items (no header label)
                     if (categorySeries.isNotEmpty()) {
                         gridItems(categorySeries, key = { it.id }) { series ->
                             PosterCard(
@@ -707,15 +701,12 @@ internal fun formatRating(rating: Double): String = String.format(java.util.Loca
 
 @Composable
 private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {}) {
-    Column(Modifier.fillMaxWidth()) {
-        SectionHeader("Cast & Creators")
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(people, key = { it.id }) { person ->
-                CastCard(person, onOpenPerson)
-            }
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(people, key = { it.id }) { person ->
+            CastCard(person, onOpenPerson)
         }
     }
 }
@@ -787,15 +778,12 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 
 @Composable
 private fun TagsShelf(tags: List<Tag>) {
-    Column(Modifier.fillMaxWidth()) {
-        SectionHeader("Tags")
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(tags, key = { it.name }) { tag ->
-                TagChip(tag)
-            }
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(tags, key = { it.name }) { tag ->
+            TagChip(tag)
         }
     }
 }
