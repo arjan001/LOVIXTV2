@@ -811,7 +811,6 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 // ---- Phase 2: Tags Shelf -----------------------------------------------------------------------
 
 @Composable
-<<<<<<< HEAD
 private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
     Column(Modifier.fillMaxWidth()) {
         SectionHeader("Tags")
@@ -822,14 +821,6 @@ private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
             items(tags, key = { it.name }) { tag ->
                 TagChip(tag, onTagClick)
             }
-=======
-private fun TagsShelf(tags: List<Tag>) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(tags, key = { it.name }) { tag ->
-            TagChip(tag, onTagClick)
         }
     }
 }
