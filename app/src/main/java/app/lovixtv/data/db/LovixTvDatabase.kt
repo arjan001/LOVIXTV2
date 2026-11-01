@@ -72,7 +72,7 @@ class Converters {
         Reminder::class,
     ],
     version = 11,
-    exportSchema = true,
+    exportSchema = false,
 )
 @TypeConverters(Converters::class)
 abstract class LovixTvDatabase : RoomDatabase() {

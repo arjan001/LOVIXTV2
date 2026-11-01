@@ -19,10 +19,13 @@ import app.lovixtv.data.model.Channel
 import app.lovixtv.data.model.Episode
 import app.lovixtv.data.model.LiveStreamFormat
 import app.lovixtv.data.model.Movie
+import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.Series
 import app.lovixtv.data.model.Source
 import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StreamKind
+import app.lovixtv.data.model.Tag
+import kotlinx.serialization.builtins.ListSerializer
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.parser.M3uParser
 import app.lovixtv.data.parser.VodTitleCleaner
@@ -170,6 +173,8 @@ class CatalogRepository(
     fun observeCategories(kind: StreamKind): Flow<List<Category>> = categoryDao.observe(kind)
 
     fun observeMovies(categoryId: String? = null): Flow<List<Movie>> = movieDao.observe(categoryId)
+
+    fun observeFavouriteMovies(): Flow<List<Movie>> = movieDao.observeFavourites()
 
     fun observeSeries(categoryId: String? = null): Flow<List<Series>> = seriesDao.observe(categoryId)
 
@@ -404,14 +409,39 @@ class CatalogRepository(
      * `get_vod_info` and persists the merged row before returning it. Safe to call whenever a detail
      * screen opens: it runs off the main thread, only touches the network when something is missing,
      * tolerates any failure (returning the row unchanged), and — because it copies the stored row —
-     * preserves the favourite flag. Non-Xtream sources are returned as-is.
+     * preserves the favourite flag.
      */
     suspend fun movieDetail(id: Long): Movie? = withContext(Dispatchers.IO) {
         val movie = movieDao.byId(id) ?: return@withContext null
         var result = movie
         val source = sourceDao.byId(movie.sourceId)
 
-        // 1) Provider back-fill from get_vod_info, for a still-bare row on an Xtream source.
+        // 1) LOVIX source: fetch castMembers and tags from the LOVIX API
+        if (source?.kind == SourceKind.LOVIX) {
+            val lovixDetail = runCatching { lovixApi.movieDetail(source, result.streamId) }.getOrNull()
+            if (lovixDetail != null) {
+                result = result.copy(
+                    backdropUrl = result.backdropUrl ?: lovixDetail.backdropUrl,
+                    cast = result.cast ?: lovixDetail.cast,
+                    director = result.director ?: lovixDetail.director,
+                    genre = result.genre ?: lovixDetail.genre,
+                    plot = result.plot ?: lovixDetail.plot,
+                    rating = result.rating ?: lovixDetail.rating,
+                    year = result.year ?: lovixDetail.year,
+                    durationSeconds = result.durationSeconds ?: lovixDetail.durationSeconds,
+                )
+                // Apply castMembers and tags from LOVIX API (these are @Ignore, not persisted)
+                if (result.castMembers == null || result.castMembers!!.isEmpty()) {
+                    result.castMembers = lovixDetail.castMembers
+                }
+                if (result.tags == null || result.tags!!.isEmpty()) {
+                    result.tags = lovixDetail.tags
+                }
+                Log.i(TAG, "LOVIX movie detail: ${result.castMembers?.size} cast members, ${result.tags?.size} tags")
+            }
+        }
+
+        // 2) Xtream source: Provider back-fill from get_vod_info, for a still-bare row.
         if (!result.isEnriched && source?.kind == SourceKind.XTREAM) {
             val info = runCatching { api.movieInfo(source, result.streamId) }.getOrNull()
             if (info != null) {
@@ -429,10 +459,10 @@ class CatalogRepository(
             }
         }
 
-        // 2) TMDB fallback for whatever the provider still left blank — only when the user set a
+        // 3) TMDB fallback for whatever the provider still left blank — only when the user set a
         //    key, and only while a headline visual field is missing (so it stops re-fetching once
         //    filled). This is the "match Plex" back-fill for posters, backdrops, synopsis and cast.
-        if (tmdb.isConfigured() && (result.backdropUrl == null || result.plot == null || result.cast == null)) {
+        if (tmdb.isConfigured() && (result.backdropUrl == null || result.plot == null || result.cast == null || result.castMembers.isNullOrEmpty())) {
             val meta = runCatching {
                 tmdb.movieMeta(VodTitleCleaner.clean(result.name), result.year, result.tmdbId)
             }.getOrNull()
@@ -448,9 +478,22 @@ class CatalogRepository(
                     rating = result.rating ?: meta.rating,
                     year = result.year ?: meta.year,
                 )
+                // Enrich castMembers with TMDB profile images if LOVIX didn't provide them
+                if ((result.castMembers.isNullOrEmpty() || result.castMembers?.all { it.imageUrl.isNullOrEmpty() } == true)
+                    && meta.castPeople.isNotEmpty()) {
+                    result.castMembers = meta.castPeople.map { tmdbPerson ->
+                        app.lovixtv.data.model.CastMember(
+                            name = tmdbPerson.name,
+                            imageUrl = tmdbPerson.profilePath?.let { "https://image.tmdb.org/t/p/w185$it" },
+                            gender = null,
+                        )
+                    }
+                    Log.i(TAG, "TMDB enriched ${result.castMembers?.size} cast members with images")
+                }
             }
         }
 
+        // Persist enriched fields (backdrop, cast, genre, etc.) but NOT castMembers/tags (@Ignore)
         if (result != movie) movieDao.upsertAll(listOf(result))
         result
     }
@@ -688,9 +731,15 @@ class CatalogRepository(
                 Log.w(TAG, "LOVIX sync: No movies returned from API. Check credentials and server URL.")
             }
 
-            // Store people (cast) and tags for UI shelves
-            // Note: These are not persisted to Room yet - held in ViewModel for Phase 2 UI
-            Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags")
+            // Store people (cast) and tags for UI shelves - cached in AppSettings
+            if (result.people.isNotEmpty() || result.tags.isNotEmpty()) {
+                val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+                val peopleJson = json.encodeToString(ListSerializer(Person.serializer()), result.people)
+                val tagsJson = json.encodeToString(ListSerializer(Tag.serializer()), result.tags)
+                settings.loenixPeopleJson = peopleJson
+                settings.loenixTagsJson = tagsJson
+                Log.i(TAG, "LOVIX sync: ${result.people.size} people, ${result.tags.size} tags (cached)")
+            }
 
             sourceDao.markCatalogSynced(source.id, nowUtcMillis)
         } catch (e: Exception) {

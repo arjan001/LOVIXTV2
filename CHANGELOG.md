@@ -1,5 +1,136 @@
 # Changelog
 
+## 1.0.17
+
+- **Removed shelf labels** — the home page Tags and Cast shelves no longer display "Tags" or
+  "Cast & Creators" headers; only the actual tag chips and circular cast images appear.
+- **Removed "All" section header** — the movie and series grids start directly with poster cards
+  instead of an "All" label, eliminating the UI glitch where a card slot was skipped.
+- **Changed default login server** — primary LOVIX provider is now `vpn.istreamix.com` so users
+  only need to enter username and password on first launch.
+- **Conditional shelf display** — Tags and Cast shelves only render when data is available,
+  preventing empty rows on the home page.
+
+## 1.0.16
+
+- **Removed "Recently Added" section** — the Movies and Shows home screens now show only Continue
+  Watching and All films/series, eliminating the redundant recently-added carousel.
+- **Tags shelf always visible** — placed immediately after the search bar, tags now appear even when
+  the LOVIX API returns none: the app aggregates genre and year tags from the movie/series catalog
+  with movie counts (e.g., "Action 142", "2024 56").
+- **Cast shelf always visible** — rounded cast member images appear below the tags shelf. If the
+  LOVIX API provides no cast data, TMDB is used to fetch profile photos for up to 20 movies.
+- **Navbar layout matches design** — search bar → tags with counts → cast with rounded images →
+  scrollable content (Continue Watching → All films grid).
+
+## 1.0.15
+
+- **Fixed compilation errors** — added missing `TmdbClient` to the dependency graph so the home
+  screen can fetch cast images from TMDB when the LOVIX API returns no people data. Fixed the
+  `recentlyAdded` reference to use `recentlyAddedMovies.value` (StateFlow) instead of calling
+  `.take()` on a Flow, which caused type mismatch errors.
+
+## 1.0.14
+
+- **Fixed app crash on scroll** — replaced nested LazyColumn + LazyVerticalGrid with a single
+  LazyVerticalGrid in both Movies and Shows screens, eliminating the Compose nested-scrollable crash.
+- **Cast images from TMDB** — the TMDB API key is now pre-configured so cast member photos are fetched
+  automatically. When the LOVIX API returns no cast images, TMDB provides profile photos for the
+  circular cast cards on the home screen and movie detail pages.
+- **TMDB cast enrichment** — movie detail pages now use TMDB to fill in cast member images when the
+  provider doesn't supply them, ensuring the cast shelf always shows photos.
+
+## 1.0.13
+
+- **Navbar cleaned up** — removed category filter chips ("Rated R", "For Adults") so only the
+  search bar and provider chips remain. The home screen shows all movies without category filtering.
+- **Home screen restructured** — three sections in order: Continue Watching carousel, Recently Added
+  carousel, then all films in a vertical-scrolling adaptive grid (6–7 cards per row on TV screens).
+- **Series screen matched** — Shows tab uses the same layout: Continue Watching, Recently Added,
+  then all series in an adaptive grid.
+
+## 1.0.12
+
+- **Cast images on movie detail page** — the LOVIX API is now called when opening a movie detail
+  to fetch cast member photos and tags, so the circular cast cards and tag chips appear correctly.
+- **Home screen restructured** — the Movies home now shows "Recently Added" as a horizontal carousel
+  first, followed by a "Trending" section with all movies in a vertical-scrolling adaptive grid
+  (5–7 cards per row on TV screens).
+- **Cast & Tags shelves** — cast member circular cards and tag chips with counts are displayed
+  below the navigation bar on the Movies home screen, cached after the first sync for instant load.
+
+## 1.0.10
+
+- **Fixed Kotlin serialization build error** — the app now compiles correctly by using explicit
+  `ListSerializer` for Person and Tag JSON serialization, resolving the persistent "Cannot infer
+  type" and "SerializationStrategy was expected" compilation errors.
+
+## 1.0.9
+
+- **Cast & Tags shelves restored** — the Movies home screen now displays cast member photos in
+  circular cards and tag chips with counts. Data is cached locally after the first sync so the
+  sections appear instantly on subsequent launches even if the API is unreachable.
+- **APK update installation fixed** — the update installer now handles signature mismatches on
+  emulators by requesting uninstall of the old package first, so the update no longer fails midway.
+- **Whisper subtitles via WebVTT** — the subtitle service now serves WebVTT files directly via
+  `GET /subtitles/{mediaKey}.vtt?lang=en`, matching what the Android app expects. Subtitles are
+  cached locally and work offline when the server is down.
+
+## 1.0.8
+
+- **LOVIX logo as app icon** — the app now displays the LOVIX brand logo when installing, updating,
+  and on the Android TV home screen, replacing the generic launcher icon.
+- **Improved URL handling** — entering a server URL with or without `http://` / `https://` prefix
+  now works correctly; the app strips and re-adds the scheme to avoid double-prefix errors.
+
+## 1.0.7
+
+- **Movies carousel sections restored** — the Movies home screen now displays Continue Watching,
+  Recently Added, Recommended, and genre-based rows (scrollable left-to-right carousels) instead
+  of a flat grid.
+- **Subtitle caching for offline playback** — Whisper-generated subtitles are downloaded and cached
+  locally on first use. If the server is down, cached subtitles continue to play. Cache expires
+  after 7 days and refreshes in the background.
+- **Subtitle format detection** — the player now correctly detects WebVTT vs SRT subtitle format
+  from the file extension, so both formats render properly.
+
+## 1.0.6
+
+- **Whisper AI subtitles enabled** — VOD movies now display auto-generated subtitles in English,
+  Dutch, Spanish, and French. The subtitle service uses Whisper small model for accurate
+  transcription and translation.
+- **Subtitle language selector** — the player's CC button shows all available subtitle tracks
+  including Whisper-generated ones, so you can switch between languages during playback.
+- **APK update installation fixed** — the in-app update installer now handles signature mismatches
+  gracefully, so updating from a debug build to a release APK on emulators works correctly.
+
+## 1.0.5
+
+- **LOVIX logo in update dialog** — the update prompt now displays the LOVIX brand logo so users
+  recognize the app at a glance when updating.
+
+## 1.0.4
+
+- **Prereleases included in update checks** — the app now detects beta and preview releases, not
+  just stable versions, so you never miss an update.
+- **Cast members and tags fetched from LOVIX API** — movie detail screens display cast photos in
+  circular cards and tag chips when the provider returns that data.
+- **Favorites tab restored** — sidebar navigation includes a Favorites tab showing only starred
+  movies.
+- **URL normalization fixed** — pasting a URL with `http://` or `https://` no longer creates
+  double-prefixed addresses, and HTTPS scheme is preserved.
+- **Responsive movie grid** — poster cards adapt to TV screen width (4–6 columns on 1080p/4K).
+- **Fixed Room database schema errors** — removed stale schema files from the old package name.
+
+## 1.0.3
+
+- **Fixed compilation errors** that prevented the app from building — LoginScreen import and
+  VodDetailScreens model references are now correct.
+- **Fixed resource translation errors** — 120 lint errors from 30 locale files referencing string
+  keys missing from the default English locale are resolved.
+- **Stabilized CI builds** — stale Gradle build cache no longer causes false compilation errors
+  on continuous integration.
+
 ## 0.11.8
 
 - **Edit a saved provider.** Settings → Providers now has an **Edit** button on each provider, so you

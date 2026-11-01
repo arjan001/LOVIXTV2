@@ -8,6 +8,7 @@ package app.lovixtv.update
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -54,7 +55,7 @@ class ApkInstaller(private val http: OkHttpClient) {
     ): File = withContext(Dispatchers.IO) {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         // A fixed name means each download overwrites the last rather than piling up copies.
-        val out = File(dir, "opentv-update.apk")
+        val out = File(dir, "lovixtv-update.apk")
 
         val request = Request.Builder().url(url).header("User-Agent", "OpenTV").build()
         http.newCall(request).execute().use { response ->
@@ -85,10 +86,32 @@ class ApkInstaller(private val http: OkHttpClient) {
         val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
-            putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            // Allow replacing an existing package even when signatures differ
+            // (e.g. release APK updating a debug-installed app on an emulator).
+            // EXTRA_UNINSTALL_OLD_PACKAGE and EXTRA_ALLOW_REPLACE are API 30+ constants;
+            // use the string literal keys so the app compiles on minSdk 23.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                putExtra("android.content.pm.extra.UNINSTALL_OLD_PACKAGE", true)
+                putExtra("android.content.pm.extra.ALLOW_REPLACE", true)
+            }
         }
-        context.startActivity(intent)
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // If direct install fails (signature mismatch), try uninstall first
+            Log.w("ApkInstaller", "Direct install failed, trying uninstall-first: ${e.message}")
+            try {
+                val packageUri = Uri.parse("package:${context.packageName}")
+                val uninstallIntent = Intent(Intent.ACTION_DELETE, packageUri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(uninstallIntent)
+            } catch (e2: Exception) {
+                Log.e("ApkInstaller", "Uninstall also failed: ${e2.message}")
+            }
+        }
     }
 }

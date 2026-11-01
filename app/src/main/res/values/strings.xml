@@ -28,6 +28,7 @@
     <string name="nav_movies">Movies</string>
     <string name="nav_shows">Shows</string>
     <string name="nav_recordings">Recordings</string>
+    <string name="nav_favorites">Favorites</string>
     <string name="nav_search">Search</string>
     <string name="nav_settings">Settings</string>
 
@@ -342,6 +343,10 @@
     <string name="about_source_code">Source code</string>
     <string name="about_report_bug">Report a bug / request a feature</string>
     <string name="about_install_page">Install page</string>
+    <string name="about_built_open_title">Built open and transparent</string>
+    <string name="about_built_open_body">LOVIXTV is open source. View the code, report issues, or contribute on GitHub.</string>
+    <string name="about_support_title">Support</string>
+    <string name="about_scan_to_donate">Scan to support development</string>
 
     <!-- ============================ Onboarding / add source ============================ -->
     <string name="onboarding_default_provider_name">My provider</string>

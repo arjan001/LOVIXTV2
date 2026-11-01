@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
@@ -86,7 +87,11 @@ import app.lovixtv.ui.vod.SeriesScreen
 enum class Tab(val labelRes: Int, val icon: ImageVector) {
     // LIVE(R.string.nav_live_tv, Icons.Filled.LiveTv),  // Hidden for LOVIX VOD-only
     MOVIES(R.string.nav_movies, Icons.Filled.Movie),
+<<<<<<< HEAD
     FAVORITES(R.string.common_favourites, Icons.Filled.Person),
+=======
+    FAVORITES(R.string.nav_favorites, Icons.Filled.Star),
+>>>>>>> 1b00811a8d88c41bd31958871f8edc2f679216e4
     // SHOWS(R.string.nav_shows, Icons.Filled.Tv),  // Hidden for LOVIX VOD-only
     // RECORDINGS(R.string.nav_recordings, Icons.Filled.FiberManualRecord),  // Hidden for LOVIX VOD-only
 }
@@ -213,7 +218,7 @@ fun MainScreen(
             }
 
             when (tab) {
-                // LOVIX VOD-only mode: Only Movies tab is active
+                // LOVIX VOD-only mode: Movies and Favorites tabs
                 Tab.MOVIES -> {
                     if (personName != null) {
                         PersonScreen(
@@ -231,6 +236,7 @@ fun MainScreen(
                             isSyncing = isSyncing,
                             onOpenPerson = { personName = it },
                             onTagClick = { selectedTag = it },
+                            favoritesOnly = false,
                         )
                     }
                 }
@@ -241,7 +247,8 @@ fun MainScreen(
                         onOpenSearch = onOpenSearch,
                         hasSources = hasSources,
                         isSyncing = isSyncing,
-                        showFavouritesOnly = true,
+                        onOpenPerson = { personName = it },
+                        favoritesOnly = true,
                     )
                 }
             }

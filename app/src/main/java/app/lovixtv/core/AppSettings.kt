@@ -377,12 +377,22 @@ class AppSettings private constructor(context: Context) {
         get() = prefs.getLong(KEY_VOD_SYNCED_AT, 0L)
         set(value) { prefs.edit().putLong(KEY_VOD_SYNCED_AT, value).apply() }
 
+    /** Cached LOVIX people (cast) JSON for the home screen's Cast/Creators shelf. */
+    var loenixPeopleJson: String
+        get() = prefs.getString(KEY_LOVIX_PEOPLE, "") ?: ""
+        set(value) { prefs.edit().putString(KEY_LOVIX_PEOPLE, value).apply() }
+
+    /** Cached LOVIX tags JSON for the home screen's Tags shelf. */
+    var loenixTagsJson: String
+        get() = prefs.getString(KEY_LOVIX_TAGS, "") ?: ""
+        set(value) { prefs.edit().putString(KEY_LOVIX_TAGS, value).apply() }
+
     /**
      * The user's own TMDB API key (v3 auth), stored on-device only exactly like provider
      * credentials, used to fill in artwork/metadata a provider left blank. Blank = the TMDB
      * fallback is off. Each user brings their own key, so no single key carries everyone's traffic.
      */
-    private val _tmdbApiKey = MutableStateFlow(prefs.getString(KEY_TMDB_KEY, "").orEmpty())
+    private val _tmdbApiKey = MutableStateFlow(prefs.getString(KEY_TMDB_KEY, DEFAULT_TMDB_KEY).orEmpty())
     val tmdbApiKey: StateFlow<String> = _tmdbApiKey.asStateFlow()
 
     fun setTmdbApiKey(key: String) {
@@ -455,7 +465,10 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_SYNC_DEVICE_ID = "sync_device_id"
         private const val KEY_NAS_AUTO_SYNC = "nas_auto_sync"
         private const val KEY_VOD_SYNCED_AT = "vod_synced_at"
+        private const val KEY_LOVIX_PEOPLE = "lovix_people"
+        private const val KEY_LOVIX_TAGS = "lovix_tags"
         private const val KEY_TMDB_KEY = "tmdb_api_key"
+        private const val DEFAULT_TMDB_KEY = "477f1d521d53d95b7fc3674481225d3c"
         private const val KEY_STREMIO_ADDONS = "stremio_addons"
         private const val KEY_PAD_START = "rec_pad_start_min"
         private const val KEY_PAD_END = "rec_pad_end_min"

@@ -24,8 +24,8 @@ object LovixDefaults {
 
     /** The three built-in LOVIX providers from admin. */
     val providers: List<LovixProvider> = listOf(
-        LovixProvider("LOVIX (Main)", "http://line.istreamix.com"),
-        LovixProvider("LOVIX (Backup 1)", "http://vpn.istreamix.com"),
+        LovixProvider("LOVIX (Main)", "http://vpn.istreamix.com"),
+        LovixProvider("LOVIX (Backup 1)", "http://line.istreamix.com"),
         LovixProvider("LOVIX (Backup 2)", "http://vpn.new4k-tx.site"),
     )
 

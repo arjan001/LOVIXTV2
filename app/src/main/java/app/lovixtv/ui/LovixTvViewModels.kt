@@ -24,6 +24,7 @@ import app.lovixtv.data.model.SourceKind
 import app.lovixtv.data.model.StremioStream
 import app.lovixtv.data.model.StreamKind
 import app.lovixtv.data.model.Tag
+import kotlinx.serialization.builtins.ListSerializer
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
@@ -737,6 +738,7 @@ class EpgViewModel(app: Application) : AndroidViewModel(app) {
 class VodViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = ServiceLocator.get(app)
     private val settings = graph.settings
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** One card in the Continue Watching shelf — a movie or episode with somewhere left to go. */
     data class ResumeItem(
@@ -809,6 +811,10 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
     val movies: StateFlow<List<Movie>> = movieCategory
         .flatMapLatest { graph.catalogRepository.observeMovies(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val favoriteMovies: StateFlow<List<Movie>> =
+        graph.catalogRepository.observeFavouriteMovies()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val series: StateFlow<List<Series>> = seriesCategory
@@ -948,14 +954,102 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                     graph.catalogRepository.seriesByGenreFrom(allSeries)
                 }.getOrDefault(emptyList())
 
-                // Load people and tags from the first LOVIX source (Phase 2 UI shelves)
-                val lovixSource = runCatching { graph.sourceRepository.enabled().firstOrNull { it.kind == SourceKind.LOVIX } }.getOrNull()
-                if (lovixSource != null) {
+                // Load people and tags from cached settings (stored during syncLovixVod)
+                val cachedPeople = runCatching { settings.loenixPeopleJson }.getOrNull()
+                val cachedTags = runCatching { settings.loenixTagsJson }.getOrNull()
+                if (cachedPeople != null) {
                     runCatching {
-                        val result = graph.catalogRepository.syncLovixBootstrap(lovixSource)
-                        _people.value = result.people
-                        _tags.value = result.tags
-                    }.onFailure { Log.w("VodViewModel", "Failed to load people/tags", it) }
+                        val peopleList = json.decodeFromString<List<Person>>(cachedPeople)
+                        if (peopleList.isNotEmpty()) _people.value = peopleList
+                    }.onFailure { Log.w("VodViewModel", "Failed to parse cached people", it) }
+                }
+                if (cachedTags != null) {
+                    runCatching {
+                        val tagsList = json.decodeFromString<List<Tag>>(cachedTags)
+                        if (tagsList.isNotEmpty()) _tags.value = tagsList
+                    }.onFailure { Log.w("VodViewModel", "Failed to parse cached tags", it) }
+                }
+                // Fallback: if no cached data, try fetching from LOVIX API once
+                if (_people.value.isEmpty() || _tags.value.isEmpty()) {
+                    val lovixSource = runCatching { graph.sourceRepository.enabled().firstOrNull { it.kind == SourceKind.LOVIX } }.getOrNull()
+                    if (lovixSource != null) {
+                        runCatching {
+                            val result = graph.catalogRepository.syncLovixBootstrap(lovixSource)
+                            if (result.people.isNotEmpty()) {
+                                _people.value = result.people
+                                settings.loenixPeopleJson = json.encodeToString(ListSerializer(Person.serializer()), result.people)
+                            }
+                            if (result.tags.isNotEmpty()) {
+                                _tags.value = result.tags
+                                settings.loenixTagsJson = json.encodeToString(ListSerializer(Tag.serializer()), result.tags)
+                            }
+                        }.onFailure { Log.w("VodViewModel", "Failed to load people/tags from API", it) }
+                    }
+                }
+                // Second fallback: if people still empty, use TMDB to fetch cast from all movies
+                if (_people.value.isEmpty()) {
+                    runCatching {
+                        val tmdb = graph.tmdbClient
+                        if (tmdb.isConfigured()) {
+                            // Use a sample of movies to fetch cast people from TMDB
+                            val sampleMovies = allMovies.take(20)
+                            val titles = sampleMovies.map { it.displayTitle to it.year }
+                            val tmdbPeople = tmdb.fetchCastPeople(titles)
+                            if (tmdbPeople.isNotEmpty()) {
+                                val peopleWithImages = tmdbPeople.map { tmdbPerson ->
+                                    Person(
+                                        id = tmdbPerson.id,
+                                        name = tmdbPerson.name,
+                                        count = 0,
+                                        imageUrl = tmdbPerson.profilePath?.let { "https://image.tmdb.org/t/p/w185$it" },
+                                        gender = null,
+                                    )
+                                }
+                                _people.value = peopleWithImages
+                                Log.i("VodViewModel", "Loaded ${peopleWithImages.size} cast people from TMDB")
+                            }
+                        }
+                    }.onFailure { Log.w("VodViewModel", "Failed to load cast from TMDB", it) }
+                }
+                // Third fallback: if tags still empty, aggregate from movie genres and years
+                if (_tags.value.isEmpty()) {
+                    // Aggregate genre tags from all movies
+                    val genreCounts = mutableMapOf<String, Int>()
+                    val yearCounts = mutableMapOf<String, Int>()
+                    fun splitGenres(genre: String): List<String> {
+                        // Genres can be comma- or pipe-separated
+                        return genre.split(",", "|").map { it.trim() }.filter { it.isNotBlank() }
+                    }
+                    for (movie in allMovies) {
+                        movie.genre?.let { splitGenres(it) }?.forEach { genre ->
+                            genreCounts[genre] = genreCounts.getOrDefault(genre, 0) + 1
+                        }
+                        movie.year?.toString()?.let { yearStr ->
+                            yearCounts[yearStr] = yearCounts.getOrDefault(yearStr, 0) + 1
+                        }
+                    }
+                    // Also aggregate from series
+                    for (series in allSeries) {
+                        series.genre?.let { splitGenres(it) }?.forEach { genre ->
+                            genreCounts[genre] = genreCounts.getOrDefault(genre, 0) + 1
+                        }
+                        series.year?.toString()?.let { yearStr ->
+                            yearCounts[yearStr] = yearCounts.getOrDefault(yearStr, 0) + 1
+                        }
+                    }
+                    val aggregatedTags = mutableListOf<Tag>()
+                    // Add genre tags sorted by count descending
+                    aggregatedTags.addAll(genreCounts.entries.sortedByDescending { it.value }.take(20).map { (name, count) ->
+                        Tag(name = name, count = count)
+                    })
+                    // Add year tags
+                    aggregatedTags.addAll(yearCounts.entries.sortedByDescending { it.value }.take(10).map { (name, count) ->
+                        Tag(name = name, count = count)
+                    })
+                    if (aggregatedTags.isNotEmpty()) {
+                        _tags.value = aggregatedTags
+                        Log.i("VodViewModel", "Aggregated ${aggregatedTags.size} tags from movie catalog")
+                    }
                 }
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)

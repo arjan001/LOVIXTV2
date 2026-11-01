@@ -49,6 +49,49 @@ class LovixApi(
     // ── Bootstrap: fetch all movies, tags, people, genres ─────────────
 
     /**
+     * Lightweight connectivity check — just verifies the server responds without
+     * downloading the full catalogue. Used for the "Test connection" button so it
+     * returns in under a second instead of fetching every movie.
+     */
+    suspend fun ping(source: Source): String = withContext(Dispatchers.IO) {
+        val baseUrl = source.url.trimEnd('/')
+        val fullUrl = if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+            baseUrl
+        } else {
+            "http://$baseUrl"
+        }
+
+        // Try a minimal request — just fetch the server info or a single-page bootstrap
+        val apiPaths = listOf("adult.php", "api.php")
+        var lastError: Throwable? = null
+
+        for (apiPath in apiPaths) {
+            val apiUrl = "$fullUrl/$apiPath"
+            runCatching {
+                val body = getJson(apiUrl, mapOf("action" to "server_info"))
+                val serverName = body.jsonObjectOrNull?.get("server_name")?.jsonPrimitive?.contentOrNull
+                serverName ?: "Connected"
+            }.onSuccess { return@withContext it }
+                .onFailure { lastError = it }
+        }
+
+        // If server_info isn't supported, fall back to a quick bootstrap with page=1
+        for (apiPath in apiPaths) {
+            val apiUrl = "$fullUrl/$apiPath"
+            runCatching {
+                val body = getJson(apiUrl, mapOf("action" to "bootstrap", "page" to "1"))
+                val moviesObj = body.jsonObjectOrNull ?: throw LovixException("Invalid response")
+                val movieCount = moviesObj["total"]?.jsonPrimitive?.contentOrNull
+                    ?: moviesObj["movies"]?.jsonArray?.size?.toString() ?: "?"
+                "Connected — $movieCount movies available"
+            }.onSuccess { return@withContext it }
+                .onFailure { lastError = it }
+        }
+
+        throw lastError ?: LovixException("Could not connect to LVX server at $fullUrl")
+    }
+
+    /**
      * Fetches the full bootstrap payload from the LVX server.
      * Returns a triple: (movies, categories, people list)
      *

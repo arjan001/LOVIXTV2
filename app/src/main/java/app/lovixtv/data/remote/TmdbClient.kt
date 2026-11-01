@@ -33,6 +33,15 @@ data class TmdbMeta(
     val genre: String? = null,
     val rating: Double? = null,
     val year: Int? = null,
+    val castPeople: List<TmdbPerson> = emptyList(),
+)
+
+/** A cast person from TMDB with profile image. */
+data class TmdbPerson(
+    val id: String,
+    val name: String,
+    val profilePath: String?,
+    val character: String? = null,
 )
 
 /**
@@ -134,10 +143,20 @@ class TmdbClient(
             ?.joinToString(", ")?.takeIf { it.isNotBlank() }
 
         val credits = o["credits"]?.jsonObject
-        val cast = credits?.get("cast")?.jsonArray
-            ?.take(TOP_CAST)
+        val castArray = credits?.get("cast")?.jsonArray?.take(TOP_CAST)
+        val cast = castArray
             ?.mapNotNull { it.jsonObject["name"]?.jsonPrimitive?.contentOrNull }
             ?.joinToString(", ")?.takeIf { it.isNotBlank() }
+        // Extract cast people with profile images for the home screen cast shelf
+        val castPeople = castArray
+            ?.mapNotNull { element ->
+                val obj = element.jsonObject ?: return@mapNotNull null
+                val name = obj["name"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val id = obj["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val profilePath = obj["profile_path"]?.jsonPrimitive?.contentOrNull
+                val character = obj["character"]?.jsonPrimitive?.contentOrNull
+                TmdbPerson(id = id, name = name, profilePath = profilePath, character = character)
+            } ?: emptyList()
         val director = if (!isMovie) null else credits?.get("crew")?.jsonArray
             ?.firstOrNull { it.jsonObject["job"]?.jsonPrimitive?.contentOrNull == "Director" }
             ?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
@@ -156,6 +175,7 @@ class TmdbClient(
             genre = genre,
             rating = rating,
             year = year,
+            castPeople = castPeople,
         )
     }
 
@@ -176,11 +196,28 @@ class TmdbClient(
             .replace(Regex("""\s+"""), " ")
             .trim()
 
+    /**
+     * Fetches cast people from TMDB for a batch of movie titles.
+     * Returns Person objects with profile images for the home screen cast shelf.
+     */
+    fun fetchCastPeople(titles: List<Pair<String, Int?>>): List<TmdbPerson> {
+        val key = settings.tmdbApiKey.value.trim()
+        if (key.isEmpty()) return emptyList()
+        // Fetch up to 20 titles to avoid too many API calls
+        return titles.take(20).flatMap { (title, year) ->
+            runCatching {
+                val meta = movieMeta(title, year, null)
+                meta?.castPeople ?: emptyList()
+            }.getOrDefault(emptyList())
+        }.distinctBy { it.id }
+    }
+
     private companion object {
         const val TAG = "TmdbClient"
         val TMDB_BASE: HttpUrl = "https://api.themoviedb.org/3".toHttpUrl()
         const val IMG_POSTER = "https://image.tmdb.org/t/p/w500"
         const val IMG_BACKDROP = "https://image.tmdb.org/t/p/w1280"
+        const val IMG_PROFILE = "https://image.tmdb.org/t/p/w185"
         const val TOP_CAST = 12
     }
 }

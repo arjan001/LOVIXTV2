@@ -55,7 +55,7 @@
         android:name=".LovixTvApp"
         android:allowBackup="true"
         android:banner="@drawable/banner"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/lovix_logo"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.LOVIXTV"

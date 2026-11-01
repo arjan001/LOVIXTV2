@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -79,11 +80,10 @@ fun MoviesScreen(
     onOpenPerson: (String) -> Unit = {},
     onTagClick: (String) -> Unit = {},
     showFavouritesOnly: Boolean = false,
+    favoritesOnly: Boolean = false,
     viewModel: VodViewModel = viewModel(),
 ) {
-    val categories by viewModel.movieCategories.collectAsState()
     val resume by viewModel.continueWatching.collectAsState()
-    val recommended by viewModel.recommendedMovies.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedMovies.collectAsState()
     val genreRows by viewModel.movieGenreRows.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
@@ -98,11 +98,13 @@ fun MoviesScreen(
     }
     
     // Filter for favourites only
-    val displayMovies = remember(showFavouritesOnly, filteredMovies) {
-        if (showFavouritesOnly) filteredMovies.filter { it.favourite }
+    val displayMovies = remember(showFavouritesOnly, favoritesOnly, filteredMovies) {
+        if (showFavouritesOnly || favoritesOnly) filteredMovies.filter { it.favourite }
         else filteredMovies
     }
     
+    val categoryMovies by viewModel.movies.collectAsState()
+    val favoriteMovies by viewModel.favoriteMovies.collectAsState()
     val vodLoading by viewModel.vodLoading.collectAsState()
     val sources by viewModel.sources.collectAsState()
     val selectedSource by viewModel.selectedVodSource.collectAsState()
@@ -123,11 +125,12 @@ fun MoviesScreen(
     // null = the curated home rows; a category id = that category's full grid.
     var browseCategory by remember { mutableStateOf<String?>(null) }
 
-    val hasContent = resume.isNotEmpty() || recommended.isNotEmpty() ||
-        recentlyAdded.isNotEmpty() || genreRows.isNotEmpty()
+    val hasContent = resume.isNotEmpty() || recentlyAdded.isNotEmpty() ||
+        genreRows.isNotEmpty()
 
     Column(Modifier.fillMaxSize()) {
         SearchAffordance(onOpenSearch)
+        // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
                 sources = sources,
@@ -161,15 +164,14 @@ fun MoviesScreen(
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
                 }
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 140.dp),
+                favoritesOnly || showFavouritesOnly -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Show all movies in vertical grid instead of horizontal rows
-                    gridItems(categoryMovies, key = { it.id }) { movie ->
+                    gridItems(displayMovies, key = { it.id }) { movie ->
                         PosterCard(
                             title = movie.displayTitle,
                             posterUrl = movie.posterUrl,
@@ -179,16 +181,39 @@ fun MoviesScreen(
                         )
                     }
                 }
+                // Curated home: single LazyVerticalGrid avoids nested-scrollable crash
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    // Section 1: Continue Watching (full-width horizontal carousel)
+                    if (resume.isNotEmpty()) item {
+                        ContinueWatchingRow(resume, onResume)
+                    }
+                    // Section 2: All films grid items (no header label)
+                    if (displayMovies.isNotEmpty()) {
+                        gridItems(displayMovies, key = { it.id }) { movie ->
+                            PosterCard(
+                                title = movie.displayTitle,
+                                posterUrl = movie.posterUrl,
+                                subtitle = movie.year?.toString(),
+                                rating = movie.rating,
+                                onClick = { onOpenMovie(movie) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 /**
- * Shows: the same row-based home as Movies (Continue Watching, Recently added, genre rows) with the
- * category chip strip for whole-category browsing. A show opens its detail page — where episodes are
- * fetched on demand, since pulling every episode of every series up front is what makes a first sync
- * take forever.
+ * Shows: row-based home with Continue Watching, Recently Added, and all series in an adaptive grid.
+ * A show opens its detail page — where episodes are fetched on demand.
  */
 @Composable
 fun SeriesScreen(
@@ -199,10 +224,8 @@ fun SeriesScreen(
     isSyncing: Boolean,
     viewModel: VodViewModel = viewModel(),
 ) {
-    val categories by viewModel.seriesCategories.collectAsState()
     val resume by viewModel.continueWatching.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedSeries.collectAsState()
-    val genreRows by viewModel.seriesGenreRows.collectAsState()
     val categorySeries by viewModel.series.collectAsState()
     val vodLoading by viewModel.vodLoading.collectAsState()
     val sources by viewModel.sources.collectAsState()
@@ -213,45 +236,45 @@ fun SeriesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    var browseCategory by remember { mutableStateOf<String?>(null) }
-
-    val hasContent = resume.isNotEmpty() || recentlyAdded.isNotEmpty() || genreRows.isNotEmpty()
-
     Column(Modifier.fillMaxSize()) {
         SearchAffordance(onOpenSearch)
+        // Provider chips only when multiple sources configured
         if (sources.size > 1) {
             ProviderChips(
                 sources = sources,
                 selected = selectedSource,
-                onSelectAll = { browseCategory = null; viewModel.selectVodSource(null) },
-                onSelectSource = { id -> browseCategory = null; viewModel.selectVodSource(id) },
+                onSelectAll = { viewModel.selectVodSource(null) },
+                onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        CategoryChips(
-            entries = categories.map { it.id to it.name },
-            selected = browseCategory,
-            onSelectHome = { browseCategory = null },
-            onSelectCategory = { id -> browseCategory = id; viewModel.selectSeriesCategory(id) },
-        )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                browseCategory != null -> SeriesCategoryGrid(categorySeries, onOpenSeries)
-                !hasContent -> when {
+                categorySeries.isEmpty() -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_shows))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
                 }
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                // Curated home: single LazyVerticalGrid avoids nested-scrollable crash
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    if (resume.isNotEmpty()) item(key = "cw") { ContinueWatchingRow(resume, onResume) }
-                    if (recentlyAdded.isNotEmpty()) item(key = "recent") {
-                        SeriesPosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenSeries)
-                    }
-                    items(genreRows, key = { "g:${it.genre}" }) { group ->
-                        SeriesPosterRow(group.genre, group.items, onOpenSeries)
+                    // Section 1: Continue Watching (full-width horizontal carousel)
+                    if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
+                    // Section 2: All series grid items (no header label)
+                    if (categorySeries.isNotEmpty()) {
+                        gridItems(categorySeries, key = { it.id }) { series ->
+                            PosterCard(
+                                title = series.displayTitle,
+                                posterUrl = series.posterUrl,
+                                subtitle = series.year?.toString(),
+                                rating = series.rating,
+                                onClick = { onOpenSeries(series) },
+                            )
+                        }
                     }
                 }
             }
@@ -267,7 +290,7 @@ private fun MovieCategoryGrid(movies: List<Movie>, viewModel: VodViewModel, onOp
     if (movies.isEmpty()) { LoadingVod(stringResource(R.string.vod_loading_movies)); return }
     val groups = remember(movies) { viewModel.collapseVariants(movies) }
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
+        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -298,7 +321,7 @@ private fun MovieCategoryGrid(movies: List<Movie>, viewModel: VodViewModel, onOp
 private fun SeriesCategoryGrid(series: List<Series>, onOpenSeries: (Series) -> Unit) {
     if (series.isEmpty()) { LoadingVod(stringResource(R.string.vod_loading_shows)); return }
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
+        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -701,8 +724,9 @@ private fun LoadingVod(message: String) {
     }
 }
 
-/** Poster shelf card width; the grid uses an adaptive min size close to this. */
-private val POSTER_WIDTH = 140.dp
+/** Poster shelf card width; the grid uses an adaptive min size close to this.
+ * Sized for TV screens: ~180 dp gives 4–6 columns on 1080p/4K displays. */
+private val POSTER_WIDTH = 180.dp
 
 /** Rating to one decimal place, locale-independent (the "★" is drawn beside it). */
 internal fun formatRating(rating: Double): String = String.format(java.util.Locale.US, "%.1f", rating)
@@ -711,15 +735,12 @@ internal fun formatRating(rating: Double): String = String.format(java.util.Loca
 
 @Composable
 private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {}) {
-    Column(Modifier.fillMaxWidth()) {
-        SectionHeader("Cast & Creators")
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(people, key = { it.id }) { person ->
-                CastCard(person, onOpenPerson)
-            }
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(people, key = { it.id }) { person ->
+            CastCard(person, onOpenPerson)
         }
     }
 }
@@ -728,6 +749,7 @@ private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {})
 private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "castScale")
+    val circleShape = CircleShape
     Column(
         Modifier
             .width(100.dp)
@@ -742,10 +764,10 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
             Modifier
                 .fillMaxWidth()
                 .height(100.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(circleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .then(
-                    if (focused) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                    if (focused) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, circleShape)
                     else Modifier,
                 ),
         ) {
@@ -754,7 +776,7 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
                     model = person.imageUrl,
                     contentDescription = person.name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().clip(circleShape),
                 )
             } else {
                 // Fallback: show initials if no image
@@ -789,6 +811,7 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 // ---- Phase 2: Tags Shelf -----------------------------------------------------------------------
 
 @Composable
+<<<<<<< HEAD
 private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
     Column(Modifier.fillMaxWidth()) {
         SectionHeader("Tags")
@@ -799,6 +822,15 @@ private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
             items(tags, key = { it.name }) { tag ->
                 TagChip(tag, onTagClick)
             }
+=======
+private fun TagsShelf(tags: List<Tag>) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(tags, key = { it.name }) { tag ->
+            TagChip(tag)
+>>>>>>> 1b00811a8d88c41bd31958871f8edc2f679216e4
         }
     }
 }

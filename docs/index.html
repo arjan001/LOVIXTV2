@@ -438,7 +438,7 @@
   var shortUrlEl = document.getElementById("short-url");
 
   // ---- The short URL people type into Downloader ------------------------------------------
-  var shortUrl = location.host + location.pathname.replace(/\/?$/, "/") + "apk";
+  var shortUrl = "https://" + location.host + location.pathname.replace(/\/?$/, "/") + "apk";
   shortUrlEl.textContent = shortUrl;
 
   document.getElementById("copy-btn").addEventListener("click", function () {
@@ -448,7 +448,7 @@
       setTimeout(function () { button.textContent = "Copy"; }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText("https://" + shortUrl).then(done, done);
+      navigator.clipboard.writeText(shortUrl).then(done, done);
     } else {
       done();
     }
@@ -470,9 +470,14 @@
 
   function humanDate(iso) {
     try {
-      return new Date(iso).toLocaleDateString(undefined, {
+      var d = new Date(iso);
+      var datePart = d.toLocaleDateString(undefined, {
         year: "numeric", month: "long", day: "numeric"
       });
+      var timePart = d.toLocaleTimeString(undefined, {
+        hour: "2-digit", minute: "2-digit"
+      });
+      return datePart + " at " + timePart;
     } catch (e) { return ""; }
   }
 
@@ -488,10 +493,9 @@
     return;
   }
 
-  // Fetch the "latest" tag release — the build workflow publishes every main push to this
-  // rolling tag so the download page always points at the newest build, not the last
-  // versioned release (v1.0.0, etc.).
-  var api = "https://api.github.com/repos/" + target.owner + "/" + target.repo + "/releases/tags/latest";
+  // Fetch the latest release by publish date — this always returns the most recently
+  // published release, whether it's a versioned tag (v1.0.3) or a rolling "latest" tag.
+  var api = "https://api.github.com/repos/" + target.owner + "/" + target.repo + "/releases/latest";
 
   fetch(api, { headers: { Accept: "application/vnd.github+json" } })
     .then(function (response) {

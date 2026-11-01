@@ -60,8 +60,7 @@ class SourceRepository(
                 }
                 SourceKind.LOVIX -> {
                     val normalized = source.copy(url = normaliseUrl(source.url, source.kind))
-                    val result = lovixApi.bootstrap(normalized)
-                    "Connected — ${result.movies.size} movies available."
+                    lovixApi.ping(normalized)
                 }
             }
         }
@@ -80,23 +79,27 @@ class SourceRepository(
          * Pure and static so it can be tested without standing up the repository.
          */
         fun normaliseUrl(raw: String, kind: SourceKind): String {
-            var url = raw.trim()
-            if (url.isEmpty()) return url
-            if (!url.startsWith("http://", true) && !url.startsWith("https://", true)) {
-                url = "http://$url"
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) return trimmed
+
+            val scheme = when {
+                trimmed.startsWith("https://", ignoreCase = true) -> "https://"
+                trimmed.startsWith("http://", ignoreCase = true) -> "http://"
+                else -> "http://"
             }
-            if (kind == SourceKind.M3U) return url
-            // A Stalker portal URL is the portal path itself (e.g. .../stalker_portal or .../c) —
-            // stripping Xtream API paths would be wrong; just tidy the trailing slash.
-            if (kind == SourceKind.STALKER) return url.trimEnd('/')
-            // LOVIX sources: keep the base URL (e.g. https://dev.lovix.com)
-            if (kind == SourceKind.LOVIX) return url.trimEnd('/')
+
+            var url = trimmed
+            url = url.removePrefix("https://").removePrefix("http://")
+
+            if (kind == SourceKind.M3U) return "$scheme$url"
+            if (kind == SourceKind.STALKER) return "$scheme${url.trimEnd('/')}"
+            if (kind == SourceKind.LOVIX) return "$scheme${url.trimEnd('/')}"
 
             url = url.substringBefore("/player_api.php")
                 .substringBefore("/panel_api.php")
                 .substringBefore("/get.php")
                 .substringBefore("/xmltv.php")
-            return url.trimEnd('/')
+            return "$scheme${url.trimEnd('/')}"
         }
     }
 }

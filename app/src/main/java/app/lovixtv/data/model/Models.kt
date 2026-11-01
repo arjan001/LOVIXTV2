@@ -10,6 +10,7 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * The domain models double as Room entities.
@@ -97,6 +98,7 @@ enum class StreamKind { LIVE, MOVIE, SERIES }
  * A tag from the LOVIX catalogue with a count of movies tagged with it.
  * Used for filtering and displaying tag chips with counts.
  */
+@Serializable
 data class Tag(
     val name: String,
     val count: Int,
@@ -106,6 +108,7 @@ data class Tag(
  * A person (actor/actress/artist) from the LOVIX catalogue with metadata.
  * Includes image URL, gender, and count of movies they appear in.
  */
+@Serializable
 data class Person(
     val id: String,
     val name: String,

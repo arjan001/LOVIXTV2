@@ -92,6 +92,7 @@ import app.lovixtv.core.ServiceLocator
 import app.lovixtv.core.SleepTimer
 import app.lovixtv.core.findActivity
 import app.lovixtv.player.PlayerController
+import app.lovixtv.player.SubtitleCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -130,7 +131,7 @@ fun VodPlayerScreen(
     // http/file URLs of ordinary VOD.
     val controller = remember {
         PlayerController(
-            context, scope, graph.streamingHttpClient, subtitlesEnabled = false,
+            context, scope, graph.streamingHttpClient, subtitlesEnabled = true,
             smbDataSourceFactory = app.lovixtv.player.SmbDataSource.Factory(graph.settings),
             // Lets a `lovixrec://<id>` recording play while it's still being written.
             growingDataSourceFactory =
@@ -196,7 +197,34 @@ fun VodPlayerScreen(
         }
     }
 
-    LaunchedEffect(mediaKey) {
+    // Subtitle cache: downloads Whisper subtitles and serves from local cache when server is down.
+    val subtitleCache = remember { SubtitleCache(context, graph.streamingHttpClient) }
+
+    // Build server subtitle track URLs from the LOVIX subtitle service (port 6970).
+    val serverSubtitleTracks = remember(streamUrl, mediaKey) {
+        val serverUrl = runCatching {
+            val url = streamUrl.substringBefore("/movie/")
+            if (url.startsWith("http://") || url.startsWith("https://")) url else "http://$url"
+        }.getOrNull()?.trimEnd('/')
+
+        val languages = listOf("en", "nl", "es", "fr")
+        serverUrl?.let { base ->
+            languages.map { code ->
+                val subtitleUrl = "$base:6970/subtitles/${mediaKey}.vtt?lang=$code&position=0"
+                code to subtitleUrl
+            }
+        } ?: emptyList()
+    }
+
+    // Resolved subtitle tracks: cached file URIs or server URIs (with fallback to stale cache).
+    var resolvedSubtitleTracks by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+
+    LaunchedEffect(mediaKey, streamUrl) {
+        // Resolve subtitle tracks through cache (uses local files when server is down)
+        val resolved = subtitleCache.resolveTracks(mediaKey, serverSubtitleTracks)
+        resolvedSubtitleTracks = resolved.map { (lang, uri) -> lang to uri.toString() }
+
+        // Start playback with resolved subtitle tracks
         val resumeFrom = graph.playbackPositions.get(settings.activeProfileId.value, mediaKey)
             ?.takeIf { !it.isFinished }?.positionMillis ?: 0L
         controller.play(
@@ -206,6 +234,7 @@ fun VodPlayerScreen(
                 userAgent = userAgent,
                 startPositionMillis = resumeFrom,
                 isLive = false,
+                subtitleTracks = resolvedSubtitleTracks,
             ),
             debounce = false,
         )
@@ -487,12 +516,15 @@ private fun TrackPanel(
     if (panel == VodPanel.SUBTITLES) {
         val anySelected = groups.any { g -> (0 until g.length).any { g.isTrackSelected(it) } }
         options += Triple(stringResource(R.string.player_subtitles_off), !anySelected) { controller.disableText(); onDone() }
+        // External Whisper-generated subtitle tracks appear as separate groups in ExoPlayer
+        // with language codes like "en", "nl", "es", "fr"
     }
     groups.forEach { group ->
         for (i in 0 until group.length) {
             if (!group.isTrackSupported(i)) continue
             val format = group.getTrackFormat(i)
-            options += Triple(vodTrackLabel(format.label, format.language, options.size), group.isTrackSelected(i)) {
+            val label = vodTrackLabel(format.label, format.language, options.size)
+            options += Triple(label, group.isTrackSelected(i)) {
                 controller.selectTrack(group, i); onDone()
             }
         }
