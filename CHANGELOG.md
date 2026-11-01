@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.15
+
+- **Fixed compilation errors** — added missing `TmdbClient` to the dependency graph so the home
+  screen can fetch cast images from TMDB when the LOVIX API returns no people data. Fixed the
+  `recentlyAdded` reference to use `recentlyAddedMovies.value` (StateFlow) instead of calling
+  `.take()` on a Flow, which caused type mismatch errors.
+
 ## 1.0.14
 
 - **Fixed app crash on scroll** — replaced nested LazyColumn + LazyVerticalGrid with a single

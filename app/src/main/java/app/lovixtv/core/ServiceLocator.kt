@@ -10,6 +10,7 @@ import app.lovixtv.data.db.LovixTvDatabase
 import app.lovixtv.data.remote.LovixApi
 import app.lovixtv.data.remote.StalkerApi
 import app.lovixtv.data.remote.StremioClient
+import app.lovixtv.data.remote.TmdbClient
 import app.lovixtv.data.remote.XtreamApi
 import app.lovixtv.data.repo.CatalogRepository
 import app.lovixtv.data.repo.EpgRepository
@@ -85,6 +86,9 @@ object ServiceLocator {
 
         /** Neutral Stremio add-on protocol client. Talks only to user-added manifest URLs. */
         val stremioClient: StremioClient by lazy { StremioClient(httpClient) }
+
+        /** TMDB v3 metadata fallback client — enriches posters, backdrops, synopsis, cast. */
+        val tmdbClient: TmdbClient by lazy { TmdbClient(httpClient, settings) }
 
         val sourceRepository: SourceRepository by lazy {
             SourceRepository(database.sources(), xtreamApi, stalkerApi, lovixApi)

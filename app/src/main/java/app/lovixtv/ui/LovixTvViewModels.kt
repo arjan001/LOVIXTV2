@@ -985,7 +985,7 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                         val tmdb = graph.tmdbClient
                         if (tmdb.isConfigured()) {
                             // Use recently added movies to fetch cast people from TMDB
-                            val recentTitles = recentlyAdded.take(10).map { it.displayTitle to it.year }
+                            val recentTitles = recentlyAddedMovies.value.take(10).map { it.displayTitle to it.year }
                             val tmdbPeople = tmdb.fetchCastPeople(recentTitles)
                             if (tmdbPeople.isNotEmpty()) {
                                 val peopleWithImages = tmdbPeople.map { tmdbPerson ->
