@@ -392,7 +392,7 @@ class AppSettings private constructor(context: Context) {
      * credentials, used to fill in artwork/metadata a provider left blank. Blank = the TMDB
      * fallback is off. Each user brings their own key, so no single key carries everyone's traffic.
      */
-    private val _tmdbApiKey = MutableStateFlow(prefs.getString(KEY_TMDB_KEY, "").orEmpty())
+    private val _tmdbApiKey = MutableStateFlow(prefs.getString(KEY_TMDB_KEY, DEFAULT_TMDB_KEY).orEmpty())
     val tmdbApiKey: StateFlow<String> = _tmdbApiKey.asStateFlow()
 
     fun setTmdbApiKey(key: String) {
@@ -468,6 +468,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_LOVIX_PEOPLE = "lovix_people"
         private const val KEY_LOVIX_TAGS = "lovix_tags"
         private const val KEY_TMDB_KEY = "tmdb_api_key"
+        private const val DEFAULT_TMDB_KEY = "477f1d521d53d95b7fc3674481225d3c"
         private const val KEY_STREMIO_ADDONS = "stremio_addons"
         private const val KEY_PAD_START = "rec_pad_start_min"
         private const val KEY_PAD_END = "rec_pad_end_min"

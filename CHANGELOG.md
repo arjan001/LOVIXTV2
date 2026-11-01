@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.14
+
+- **Fixed app crash on scroll** — replaced nested LazyColumn + LazyVerticalGrid with a single
+  LazyVerticalGrid in both Movies and Shows screens, eliminating the Compose nested-scrollable crash.
+- **Cast images from TMDB** — the TMDB API key is now pre-configured so cast member photos are fetched
+  automatically. When the LOVIX API returns no cast images, TMDB provides profile photos for the
+  circular cast cards on the home screen and movie detail pages.
+- **TMDB cast enrichment** — movie detail pages now use TMDB to fill in cast member images when the
+  provider doesn't supply them, ensuring the cast shelf always shows photos.
+
 ## 1.0.13
 
 - **Navbar cleaned up** — removed category filter chips ("Rated R", "For Adults") so only the

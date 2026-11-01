@@ -151,39 +151,35 @@ fun MoviesScreen(
                         )
                     }
                 }
-                // Curated home: Continue Watching → Recently Added → All films grid
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                // Curated home: single LazyVerticalGrid avoids nested-scrollable crash
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Section 1: Continue Watching (horizontal carousel)
-                    if (resume.isNotEmpty()) item(key = "cw") {
+                    // Section 1: Continue Watching (full-width horizontal carousel)
+                    if (resume.isNotEmpty()) item {
                         ContinueWatchingRow(resume, onResume)
                     }
-                    // Section 2: Recently Added (horizontal carousel)
-                    if (recentlyAdded.isNotEmpty()) item(key = "recent") {
+                    // Section 2: Recently Added (full-width horizontal carousel)
+                    if (recentlyAdded.isNotEmpty()) item {
                         MoviePosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenMovie)
                     }
-                    // Section 3: All films — adaptive grid (6-7 cards per row on TV)
-                    if (displayMovies.isNotEmpty()) item(key = "all") {
+                    // Section 3: All films header + grid items
+                    if (displayMovies.isNotEmpty()) item {
                         SectionHeader(stringResource(R.string.vod_all))
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            gridItems(displayMovies, key = { it.id }) { movie ->
-                                PosterCard(
-                                    title = movie.displayTitle,
-                                    posterUrl = movie.posterUrl,
-                                    subtitle = movie.year?.toString(),
-                                    rating = movie.rating,
-                                    onClick = { onOpenMovie(movie) },
-                                )
-                            }
+                    }
+                    if (displayMovies.isNotEmpty()) {
+                        gridItems(displayMovies, key = { it.id }) { movie ->
+                            PosterCard(
+                                title = movie.displayTitle,
+                                posterUrl = movie.posterUrl,
+                                subtitle = movie.year?.toString(),
+                                rating = movie.rating,
+                                onClick = { onOpenMovie(movie) },
+                            )
                         }
                     }
                 }
@@ -235,36 +231,33 @@ fun SeriesScreen(
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
                 }
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                // Curated home: single LazyVerticalGrid avoids nested-scrollable crash
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Section 1: Continue Watching (horizontal carousel)
-                    if (resume.isNotEmpty()) item(key = "cw") { ContinueWatchingRow(resume, onResume) }
-                    // Section 2: Recently Added (horizontal carousel)
-                    if (recentlyAdded.isNotEmpty()) item(key = "recent") {
+                    // Section 1: Continue Watching (full-width horizontal carousel)
+                    if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
+                    // Section 2: Recently Added (full-width horizontal carousel)
+                    if (recentlyAdded.isNotEmpty()) item {
                         SeriesPosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenSeries)
                     }
-                    // Section 3: All series — adaptive grid (6-7 cards per row on TV)
-                    if (categorySeries.isNotEmpty()) item(key = "all") {
+                    // Section 3: All series header + grid items
+                    if (categorySeries.isNotEmpty()) item {
                         SectionHeader(stringResource(R.string.vod_all))
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            gridItems(categorySeries, key = { it.id }) { series ->
-                                PosterCard(
-                                    title = series.displayTitle,
-                                    posterUrl = series.posterUrl,
-                                    subtitle = series.year?.toString(),
-                                    rating = series.rating,
-                                    onClick = { onOpenSeries(series) },
-                                )
-                            }
+                    }
+                    if (categorySeries.isNotEmpty()) {
+                        gridItems(categorySeries, key = { it.id }) { series ->
+                            PosterCard(
+                                title = series.displayTitle,
+                                posterUrl = series.posterUrl,
+                                subtitle = series.year?.toString(),
+                                rating = series.rating,
+                                onClick = { onOpenSeries(series) },
+                            )
                         }
                     }
                 }

@@ -962,7 +962,7 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                         if (tagsList.isNotEmpty()) _tags.value = tagsList
                     }.onFailure { Log.w("VodViewModel", "Failed to parse cached tags", it) }
                 }
-                // Fallback: if no cached data, try fetching from API once
+                // Fallback: if no cached data, try fetching from LOVIX API once
                 if (_people.value.isEmpty() || _tags.value.isEmpty()) {
                     val lovixSource = runCatching { graph.sourceRepository.enabled().firstOrNull { it.kind == SourceKind.LOVIX } }.getOrNull()
                     if (lovixSource != null) {
@@ -978,6 +978,30 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                             }
                         }.onFailure { Log.w("VodViewModel", "Failed to load people/tags from API", it) }
                     }
+                }
+                // Second fallback: if people still empty, use TMDB to fetch cast from recent movies
+                if (_people.value.isEmpty()) {
+                    runCatching {
+                        val tmdb = graph.tmdbClient
+                        if (tmdb.isConfigured()) {
+                            // Use recently added movies to fetch cast people from TMDB
+                            val recentTitles = recentlyAdded.take(10).map { it.displayTitle to it.year }
+                            val tmdbPeople = tmdb.fetchCastPeople(recentTitles)
+                            if (tmdbPeople.isNotEmpty()) {
+                                val peopleWithImages = tmdbPeople.map { tmdbPerson ->
+                                    Person(
+                                        id = tmdbPerson.id,
+                                        name = tmdbPerson.name,
+                                        count = 0,
+                                        imageUrl = tmdbPerson.profilePath?.let { "https://image.tmdb.org/t/p/w185$it" },
+                                        gender = null,
+                                    )
+                                }
+                                _people.value = peopleWithImages
+                                Log.i("VodViewModel", "Loaded ${peopleWithImages.size} cast people from TMDB")
+                            }
+                        }
+                    }.onFailure { Log.w("VodViewModel", "Failed to load cast from TMDB", it) }
                 }
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)

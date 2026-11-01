@@ -462,7 +462,7 @@ class CatalogRepository(
         // 3) TMDB fallback for whatever the provider still left blank — only when the user set a
         //    key, and only while a headline visual field is missing (so it stops re-fetching once
         //    filled). This is the "match Plex" back-fill for posters, backdrops, synopsis and cast.
-        if (tmdb.isConfigured() && (result.backdropUrl == null || result.plot == null || result.cast == null)) {
+        if (tmdb.isConfigured() && (result.backdropUrl == null || result.plot == null || result.cast == null || result.castMembers.isNullOrEmpty())) {
             val meta = runCatching {
                 tmdb.movieMeta(VodTitleCleaner.clean(result.name), result.year, result.tmdbId)
             }.getOrNull()
@@ -478,6 +478,18 @@ class CatalogRepository(
                     rating = result.rating ?: meta.rating,
                     year = result.year ?: meta.year,
                 )
+                // Enrich castMembers with TMDB profile images if LOVIX didn't provide them
+                if ((result.castMembers.isNullOrEmpty() || result.castMembers?.all { it.imageUrl.isNullOrEmpty() } == true)
+                    && meta.castPeople.isNotEmpty()) {
+                    result.castMembers = meta.castPeople.map { tmdbPerson ->
+                        app.lovixtv.data.model.CastMember(
+                            name = tmdbPerson.name,
+                            imageUrl = tmdbPerson.profilePath?.let { "https://image.tmdb.org/t/p/w185$it" },
+                            gender = null,
+                        )
+                    }
+                    Log.i(TAG, "TMDB enriched ${result.castMembers?.size} cast members with images")
+                }
             }
         }
 
