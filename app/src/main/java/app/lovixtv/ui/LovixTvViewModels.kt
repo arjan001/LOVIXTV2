@@ -979,14 +979,15 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                         }.onFailure { Log.w("VodViewModel", "Failed to load people/tags from API", it) }
                     }
                 }
-                // Second fallback: if people still empty, use TMDB to fetch cast from recent movies
+                // Second fallback: if people still empty, use TMDB to fetch cast from all movies
                 if (_people.value.isEmpty()) {
                     runCatching {
                         val tmdb = graph.tmdbClient
                         if (tmdb.isConfigured()) {
-                            // Use recently added movies to fetch cast people from TMDB
-                            val recentTitles = recentlyAddedMovies.value.take(10).map { it.displayTitle to it.year }
-                            val tmdbPeople = tmdb.fetchCastPeople(recentTitles)
+                            // Use a sample of movies to fetch cast people from TMDB
+                            val sampleMovies = allMovies.take(20)
+                            val titles = sampleMovies.map { it.displayTitle to it.year }
+                            val tmdbPeople = tmdb.fetchCastPeople(titles)
                             if (tmdbPeople.isNotEmpty()) {
                                 val peopleWithImages = tmdbPeople.map { tmdbPerson ->
                                     Person(
@@ -1002,6 +1003,46 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                             }
                         }
                     }.onFailure { Log.w("VodViewModel", "Failed to load cast from TMDB", it) }
+                }
+                // Third fallback: if tags still empty, aggregate from movie genres and years
+                if (_tags.value.isEmpty()) {
+                    // Aggregate genre tags from all movies
+                    val genreCounts = mutableMapOf<String, Int>()
+                    val yearCounts = mutableMapOf<String, Int>()
+                    fun splitGenres(genre: String): List<String> {
+                        // Genres can be comma- or pipe-separated
+                        return genre.split(",", "|").map { it.trim() }.filter { it.isNotBlank() }
+                    }
+                    for (movie in allMovies) {
+                        movie.genre?.let { splitGenres(it) }?.forEach { genre ->
+                            genreCounts[genre] = genreCounts.getOrDefault(genre, 0) + 1
+                        }
+                        movie.year?.toString()?.let { yearStr ->
+                            yearCounts[yearStr] = yearCounts.getOrDefault(yearStr, 0) + 1
+                        }
+                    }
+                    // Also aggregate from series
+                    for (series in allSeries) {
+                        series.genre?.let { splitGenres(it) }?.forEach { genre ->
+                            genreCounts[genre] = genreCounts.getOrDefault(genre, 0) + 1
+                        }
+                        series.year?.toString()?.let { yearStr ->
+                            yearCounts[yearStr] = yearCounts.getOrDefault(yearStr, 0) + 1
+                        }
+                    }
+                    val aggregatedTags = mutableListOf<Tag>()
+                    // Add genre tags sorted by count descending
+                    aggregatedTags.addAll(genreCounts.entries.sortedByDescending { it.value }.take(20).map { (name, count) ->
+                        Tag(name = name, count = count)
+                    })
+                    // Add year tags
+                    aggregatedTags.addAll(yearCounts.entries.sortedByDescending { it.value }.take(10).map { (name, count) ->
+                        Tag(name = name, count = count)
+                    })
+                    if (aggregatedTags.isNotEmpty()) {
+                        _tags.value = aggregatedTags
+                        Log.i("VodViewModel", "Aggregated ${aggregatedTags.size} tags from movie catalog")
+                    }
                 }
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)

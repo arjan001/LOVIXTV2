@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.16
+
+- **Removed "Recently Added" section** — the Movies and Shows home screens now show only Continue
+  Watching and All films/series, eliminating the redundant recently-added carousel.
+- **Tags shelf always visible** — placed immediately after the search bar, tags now appear even when
+  the LOVIX API returns none: the app aggregates genre and year tags from the movie/series catalog
+  with movie counts (e.g., "Action 142", "2024 56").
+- **Cast shelf always visible** — rounded cast member images appear below the tags shelf. If the
+  LOVIX API provides no cast data, TMDB is used to fetch profile photos for up to 20 movies.
+- **Navbar layout matches design** — search bar → tags with counts → cast with rounded images →
+  scrollable content (Continue Watching → All films grid).
+
 ## 1.0.15
 
 - **Fixed compilation errors** — added missing `TmdbClient` to the dependency graph so the home

@@ -113,14 +113,10 @@ fun MoviesScreen(
                 onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        // Cast/Creators shelf below navbar
-        if (castPeople.isNotEmpty()) {
-            CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
-        }
-        // Tags shelf with counts
-        if (castTags.isNotEmpty()) {
-            TagsShelf(tags = castTags)
-        }
+        // Tags shelf with movie counts - always shown so user sees the section
+        TagsShelf(tags = castTags)
+        // Cast/Creators shelf with rounded images - always shown
+        CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         // Scrollable content area
         val displayMovies = if (favoritesOnly) favoriteMovies else categoryMovies
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -163,11 +159,7 @@ fun MoviesScreen(
                     if (resume.isNotEmpty()) item {
                         ContinueWatchingRow(resume, onResume)
                     }
-                    // Section 2: Recently Added (full-width horizontal carousel)
-                    if (recentlyAdded.isNotEmpty()) item {
-                        MoviePosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenMovie)
-                    }
-                    // Section 3: All films header + grid items
+                    // Section 2: All films header + grid items
                     if (displayMovies.isNotEmpty()) item {
                         SectionHeader(stringResource(R.string.vod_all))
                     }
@@ -241,11 +233,7 @@ fun SeriesScreen(
                 ) {
                     // Section 1: Continue Watching (full-width horizontal carousel)
                     if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
-                    // Section 2: Recently Added (full-width horizontal carousel)
-                    if (recentlyAdded.isNotEmpty()) item {
-                        SeriesPosterRow(stringResource(R.string.vod_recently_added), recentlyAdded, onOpenSeries)
-                    }
-                    // Section 3: All series header + grid items
+                    // Section 2: All series header + grid items
                     if (categorySeries.isNotEmpty()) item {
                         SectionHeader(stringResource(R.string.vod_all))
                     }
