@@ -829,8 +829,7 @@ private fun TagsShelf(tags: List<Tag>) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(tags, key = { it.name }) { tag ->
-            TagChip(tag)
->>>>>>> 1b00811a8d88c41bd31958871f8edc2f679216e4
+            TagChip(tag, onTagClick)
         }
     }
 }
@@ -866,12 +865,6 @@ private fun TagChip(tag: Tag, onTagClick: (String) -> Unit = {}) {
             "${tag.count}",
             style = MaterialTheme.typography.labelSmall,
             color = fg,
-        )
-    }
-}
-            "${tag.count}",
-            style = MaterialTheme.typography.labelSmall,
-            color = fg.copy(alpha = 0.7f),
         )
     }
 }
