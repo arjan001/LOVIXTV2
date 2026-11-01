@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.24
+
+- **Dynamic tag counts** — tags are no longer hardcoded with static counts; the app scans all movies
+  and series at startup and computes how many titles match each tag name (genre, cast, plot, name).
+- **Tag filter fixed** — clicking a tag now correctly filters movies because the ViewModel's
+  `selectTag()` is called. Tag search checks genre, cast, plot, and title fields.
+- **Pill-shaped tags** — tag chips are now smaller, pill-shaped (16dp corner radius), with tiny
+  padding and labelSmall text. Tags with zero matches are hidden.
+- **Horizontally scrollable tags** — tags shelf uses LazyRow for smooth left-to-right scrolling.
+
 ## 1.0.23
 
 - **Search navigation fixed** — pressing Enter or clicking a suggestion now opens the first matching

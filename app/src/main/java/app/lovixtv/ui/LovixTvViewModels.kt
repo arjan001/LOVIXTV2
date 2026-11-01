@@ -1053,46 +1053,98 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
                         Log.i("VodViewModel", "Aggregated ${aggregatedTags.size} tags from movie catalog")
                     }
                 }
-                // Final fallback: hardcoded tags from the LOVIX catalog
+                // Final fallback: known tag names with count=0 — counts are computed dynamically
+                // from the movie/series catalog below so they always reflect the actual data.
+                if (_tags.value.isEmpty()) {
+                    val knownTagNames = listOf(
+                        "Blonde", "Brunette", "MILF", "Busty", "Petite", "Mature",
+                        "Asian", "Latina", "Interracial", "Threesome", "Cuckold", "Gangbang",
+                        "POV", "Amateur", "Public", "Outdoor", "Office", "Hotel",
+                        "Massage", "Casting", "Cosplay", "Fetish", "Anal", "Hardcore",
+                        "Fisting", "Creampie", "Squirt", "Rough", "Gay", "Curvy",
+                        "Black", "Trans", "Double", "Car", "Bar", "Skinny",
+                        "White", "Oral", "Romantic", "Group", "Taxi", "Reality",
+                        "Wife", "Park", "First Time", "Bedroom", "Husband", "Party",
+                        "Athletic", "Facial", "Maid", "Boyfriend", "Girlfriend", "Shower",
+                        "Club", "Neighbor", "Couple", "Pool", "Redhead", "Lingerie",
+                        "Cheating", "Forest", "Tattooed", "Vacation", "Married", "Beach",
+                        "Teacher", "Kitchen", "Nurse", "Audition", "Street", "Student Roleplay",
+                        "Gym", "Stranger", "Swinger", "Cruise", "Orgy", "Secretary",
+                        "Roommate", "Wedding", "Stockings", "Family Roleplay", "Roleplay", "Rimming",
+                        "Bathroom", "Garden", "Anniversary", "Solo", "Uniform", "Selfie",
+                        "Boat", "Homemade", "Voyeur", "Honeymoon", "Foursome", "High Heels",
+                        "Businesswoman", "Garage", "MMF", "Webcam", "FFM", "Motel", "Parody",
+                    )
+                    _tags.value = knownTagNames.map { Tag(name = it, count = 0) }
+                    Log.i("VodViewModel", "Loaded ${_tags.value.size} known tag names (counts computed below)")
+                }
+                // Compute dynamic counts: scan all movies/series for each tag name
+                // Tags can appear in genre, cast, plot, or name fields
+                val tagCountMap = mutableMapOf<String, Int>()
+                for (movie in allMovies) {
+                    val searchable = listOfNotNull(
+                        movie.genre, movie.cast, movie.plot, movie.name
+                    ).joinToString(" ", transform = { it.lowercase() })
+                    for (tag in _tags.value) {
+                        if (searchable.contains(tag.name.lowercase())) {
+                            tagCountMap[tag.name] = tagCountMap.getOrDefault(tag.name, 0) + 1
+                        }
+                    }
+                }
+                for (series in allSeries) {
+                    val searchable = listOfNotNull(
+                        series.genre, series.cast, series.plot, series.name
+                    ).joinToString(" ", transform = { it.lowercase() })
+                    for (tag in _tags.value) {
+                        if (searchable.contains(tag.name.lowercase())) {
+                            tagCountMap[tag.name] = tagCountMap.getOrDefault(tag.name, 0) + 1
+                        }
+                    }
+                }
+                // Update tag counts dynamically
+                _tags.value = _tags.value.map { tag ->
+                    Tag(name = tag.name, count = tagCountMap.getOrDefault(tag.name, 0))
+                }.filter { it.count > 0 }  // Only show tags that match at least one movie
+                // If dynamic count found nothing, fall back to showing all known tags with count 0
                 if (_tags.value.isEmpty()) {
                     _tags.value = listOf(
-                        Tag("Blonde", 337), Tag("Brunette", 118), Tag("MILF", 299),
-                        Tag("Busty", 207), Tag("Petite", 187), Tag("Mature", 77),
-                        Tag("Asian", 161), Tag("Latina", 101), Tag("Interracial", 219),
-                        Tag("Threesome", 164), Tag("Cuckold", 28), Tag("Gangbang", 167),
-                        Tag("POV", 133), Tag("Amateur", 45), Tag("Public", 290),
-                        Tag("Outdoor", 84), Tag("Office", 47), Tag("Hotel", 28),
-                        Tag("Massage", 78), Tag("Casting", 317), Tag("Cosplay", 11),
-                        Tag("Fetish", 74), Tag("Anal", 3321), Tag("Hardcore", 399),
-                        Tag("Fisting", 179), Tag("Creampie", 204), Tag("Squirt", 407),
-                        Tag("Rough", 209), Tag("Gay", 9), Tag("Curvy", 175),
-                        Tag("Black", 799), Tag("Trans", 2033), Tag("Double", 1067),
-                        Tag("Car", 474), Tag("Bar", 354), Tag("Skinny", 345),
-                        Tag("White", 325), Tag("Oral", 288), Tag("Romantic", 202),
-                        Tag("Group", 201), Tag("Taxi", 200), Tag("Reality", 187),
-                        Tag("Wife", 184), Tag("Park", 111), Tag("First Time", 108),
-                        Tag("Bedroom", 107), Tag("Husband", 105), Tag("Party", 103),
-                        Tag("Athletic", 96), Tag("Facial", 92), Tag("Maid", 91),
-                        Tag("Boyfriend", 81), Tag("Girlfriend", 77), Tag("Shower", 75),
-                        Tag("Club", 67), Tag("Neighbor", 67), Tag("Couple", 67),
-                        Tag("Pool", 64), Tag("Redhead", 57), Tag("Lingerie", 53),
-                        Tag("Cheating", 53), Tag("Forest", 51), Tag("Tattooed", 51),
-                        Tag("Vacation", 49), Tag("Married", 49), Tag("Beach", 42),
-                        Tag("Teacher", 41), Tag("Kitchen", 39), Tag("Nurse", 35),
-                        Tag("Audition", 34), Tag("Street", 32), Tag("Student Roleplay", 29),
-                        Tag("Gym", 28), Tag("Stranger", 28), Tag("Swinger", 27),
-                        Tag("Cruise", 23), Tag("Orgy", 22), Tag("Secretary", 22),
-                        Tag("Roommate", 22), Tag("Wedding", 21), Tag("Stockings", 20),
-                        Tag("Family Roleplay", 18), Tag("Roleplay", 15), Tag("Rimming", 14),
-                        Tag("Bathroom", 13), Tag("Garden", 13), Tag("Anniversary", 12),
-                        Tag("Solo", 11), Tag("Uniform", 9), Tag("Selfie", 9),
-                        Tag("Boat", 7), Tag("Homemade", 7), Tag("Voyeur", 5),
-                        Tag("Honeymoon", 5), Tag("Foursome", 4), Tag("High Heels", 4),
-                        Tag("Businesswoman", 4), Tag("Garage", 4), Tag("MMF", 4),
-                        Tag("Webcam", 3), Tag("FFM", 3), Tag("Motel", 2), Tag("Parody", 2),
+                        Tag("Blonde", 0), Tag("Brunette", 0), Tag("MILF", 0),
+                        Tag("Busty", 0), Tag("Petite", 0), Tag("Mature", 0),
+                        Tag("Asian", 0), Tag("Latina", 0), Tag("Interracial", 0),
+                        Tag("Threesome", 0), Tag("Cuckold", 0), Tag("Gangbang", 0),
+                        Tag("POV", 0), Tag("Amateur", 0), Tag("Public", 0),
+                        Tag("Outdoor", 0), Tag("Office", 0), Tag("Hotel", 0),
+                        Tag("Massage", 0), Tag("Casting", 0), Tag("Cosplay", 0),
+                        Tag("Fetish", 0), Tag("Anal", 0), Tag("Hardcore", 0),
+                        Tag("Fisting", 0), Tag("Creampie", 0), Tag("Squirt", 0),
+                        Tag("Rough", 0), Tag("Gay", 0), Tag("Curvy", 0),
+                        Tag("Black", 0), Tag("Trans", 0), Tag("Double", 0),
+                        Tag("Car", 0), Tag("Bar", 0), Tag("Skinny", 0),
+                        Tag("White", 0), Tag("Oral", 0), Tag("Romantic", 0),
+                        Tag("Group", 0), Tag("Taxi", 0), Tag("Reality", 0),
+                        Tag("Wife", 0), Tag("Park", 0), Tag("First Time", 0),
+                        Tag("Bedroom", 0), Tag("Husband", 0), Tag("Party", 0),
+                        Tag("Athletic", 0), Tag("Facial", 0), Tag("Maid", 0),
+                        Tag("Boyfriend", 0), Tag("Girlfriend", 0), Tag("Shower", 0),
+                        Tag("Club", 0), Tag("Neighbor", 0), Tag("Couple", 0),
+                        Tag("Pool", 0), Tag("Redhead", 0), Tag("Lingerie", 0),
+                        Tag("Cheating", 0), Tag("Forest", 0), Tag("Tattooed", 0),
+                        Tag("Vacation", 0), Tag("Married", 0), Tag("Beach", 0),
+                        Tag("Teacher", 0), Tag("Kitchen", 0), Tag("Nurse", 0),
+                        Tag("Audition", 0), Tag("Street", 0), Tag("Student Roleplay", 0),
+                        Tag("Gym", 0), Tag("Stranger", 0), Tag("Swinger", 0),
+                        Tag("Cruise", 0), Tag("Orgy", 0), Tag("Secretary", 0),
+                        Tag("Roommate", 0), Tag("Wedding", 0), Tag("Stockings", 0),
+                        Tag("Family Roleplay", 0), Tag("Roleplay", 0), Tag("Rimming", 0),
+                        Tag("Bathroom", 0), Tag("Garden", 0), Tag("Anniversary", 0),
+                        Tag("Solo", 0), Tag("Uniform", 0), Tag("Selfie", 0),
+                        Tag("Boat", 0), Tag("Homemade", 0), Tag("Voyeur", 0),
+                        Tag("Honeymoon", 0), Tag("Foursome", 0), Tag("High Heels", 0),
+                        Tag("Businesswoman", 0), Tag("Garage", 0), Tag("MMF", 0),
+                        Tag("Webcam", 0), Tag("FFM", 0), Tag("Motel", 0), Tag("Parody", 0),
                     )
-                    Log.i("VodViewModel", "Loaded ${_tags.value.size} hardcoded tags as fallback")
                 }
+                Log.i("VodViewModel", "Dynamic tag counts: ${_tags.value.filter { it.count > 0 }.size} tags with matches")
 
                 loadedHomeFeeds = HomeFeedsKey(profileId, movieCount, seriesCount)
             }

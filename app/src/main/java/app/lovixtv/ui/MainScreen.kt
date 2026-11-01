@@ -75,6 +75,7 @@ import app.lovixtv.ui.recordings.RecordingsScreen
 import app.lovixtv.ui.vod.MoviesScreen
 import app.lovixtv.ui.vod.PersonScreen
 import app.lovixtv.ui.vod.SeriesScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * The shell: a slim navigation rail down the left over a content area. The rail sits collapsed as
@@ -122,9 +123,6 @@ fun MainScreen(
 
     // Person screen navigation state
     var personName by remember { mutableStateOf<String?>(null) }
-    
-    // Tag filter state
-    var selectedTag by remember { mutableStateOf<String?>(null) }
 
     // Content-type toggles: a switched-off type has its tab hidden here (and its sync skipped in
     // CatalogRepository). Recordings is never a content type, so it always stays — which also means
@@ -216,6 +214,7 @@ fun MainScreen(
             when (tab) {
                 // LOVIX VOD-only mode: Movies and Favorites tabs
                 Tab.MOVIES -> {
+                    val moviesViewModel: VodViewModel = viewModel()
                     if (personName != null) {
                         PersonScreen(
                             name = personName!!,
@@ -231,12 +230,14 @@ fun MainScreen(
                             hasSources = hasSources,
                             isSyncing = isSyncing,
                             onOpenPerson = { personName = it },
-                            onTagClick = { selectedTag = it },
+                            onTagClick = { moviesViewModel.selectTag(it) },
                             favoritesOnly = false,
+                            viewModel = moviesViewModel,
                         )
                     }
                 }
                 Tab.FAVORITES -> {
+                    val favViewModel: VodViewModel = viewModel()
                     MoviesScreen(
                         onOpenMovie = onOpenMovie,
                         onResume = onResume,
@@ -245,6 +246,7 @@ fun MainScreen(
                         isSyncing = isSyncing,
                         onOpenPerson = { personName = it },
                         favoritesOnly = true,
+                        viewModel = favViewModel,
                     )
                 }
             }

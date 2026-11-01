@@ -96,13 +96,17 @@ fun MoviesScreen(
     val genreRows by viewModel.movieGenreRows.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
     
-    // Filter movies by selected tag
+    // Filter movies by selected tag — searches genre, cast, plot, and name
     val movies by viewModel.movies.collectAsState()
     val filteredMovies = remember(selectedTag, movies) {
         val tag = selectedTag
         if (tag == null) movies
         else movies.filter { movie ->
-            movie.genre?.contains(tag, ignoreCase = true) == true
+            val tagLower = tag.lowercase()
+            movie.genre?.contains(tagLower, ignoreCase = true) == true ||
+            movie.cast?.contains(tagLower, ignoreCase = true) == true ||
+            movie.plot?.contains(tagLower, ignoreCase = true) == true ||
+            movie.name?.contains(tagLower, ignoreCase = true) == true
         }
     }
     
@@ -1022,8 +1026,8 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 @Composable
 private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         items(tags, key = { it.name }) { tag ->
             TagChip(tag, onTagClick)
@@ -1045,23 +1049,25 @@ private fun TagChip(tag: Tag, onTagClick: (String) -> Unit = {}) {
     Row(
         Modifier
             .onFocusChanged { focused = it.isFocused }
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(bg)
             .clickable(onClick = { onTagClick(tag.name) })
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             tag.name,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelSmall,
             color = fg,
             maxLines = 1,
         )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            "${tag.count}",
-            style = MaterialTheme.typography.labelSmall,
-            color = fg,
-        )
+        if (tag.count > 0) {
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "${tag.count}",
+                style = MaterialTheme.typography.labelSmall,
+                color = fg,
+            )
+        }
     }
 }
