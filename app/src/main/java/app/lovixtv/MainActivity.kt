@@ -514,10 +514,24 @@ private fun LovixTvApp(isTelevision: Boolean) {
                     movieId = movieId,
                     viewModel = vodViewModel,
                     onPlay = { movie ->
+                        // Ensure streamUrl is not empty - if empty, try to resolve from source
+                        val url = movie.streamUrl.ifBlank {
+                            // Fallback: build URL from source credentials
+                            val source = vodViewModel.sources.value.find { s -> s.id == movie.sourceId }
+                            if (source != null) {
+                                val server = source.url.trimEnd('/')
+                                val username = source.username ?: ""
+                                val password = source.password ?: ""
+                                val ext = movie.containerExtension ?: "mp4"
+                                "$server/movie/$username/$password/${movie.streamId}.$ext"
+                            } else {
+                                movie.streamUrl
+                            }
+                        }
                         navController.navigate(
                             Routes.vodPlayer(
                                 key = "movie:${movie.id}",
-                                url = movie.streamUrl,
+                                url = url,
                                 title = movie.displayTitle,
                                 ua = "LOVIXTV/0.1 (Android)",
                             ),

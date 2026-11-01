@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.20
+
+- **Fixed video playback** — when a movie's streamUrl is empty, the app now builds the URL from
+  source credentials before navigating to the player.
+- **Remote-controlled player** — removed rewind/forward/audio buttons from on-screen controls;
+  left/right DPAD arrows now seek ±10 seconds, center/enter toggles play/pause. Only the progress
+  bar, play/pause, and subtitle button remain on screen.
+- **Tags and cast always visible** — the home page tags shelf and cast circular images are now
+  always displayed below the search bar, even when the API returns no data yet.
+- **Series screen improved** — added tags and cast shelves to the Shows tab for consistency.
+
 ## 1.0.19
 
 - **Fixed build failure** — removed `CategoryChips` call and unused `categories` state from

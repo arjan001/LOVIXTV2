@@ -307,7 +307,28 @@ fun VodPlayerScreen(
                 when {
                     event.key == Key.Back || event.key == Key.Escape -> false
                     event.type == KeyEventType.KeyDown && !controlsVisible -> { reveal(); true }
-                    event.type == KeyEventType.KeyDown -> { interaction++; false }
+                    event.type == KeyEventType.KeyDown -> {
+                        // Remote DPAD handling: left/right for seek, center for play/pause
+                        when (event.key) {
+                            Key.DpadLeft -> {
+                                if (growingRec) seekRelative(-10_000) else controller.seekBackward()
+                                reveal(); true
+                            }
+                            Key.DpadRight -> {
+                                if (growingRec) seekRelative(10_000) else controller.seekForward()
+                                reveal(); true
+                            }
+                            Key.DpadCenter, Key.Enter -> {
+                                if (controlsVisible) {
+                                    paused = !paused
+                                    controller.player.playWhenReady = !paused
+                                    interaction++
+                                }
+                                reveal(); true
+                            }
+                            else -> { interaction++; false }
+                        }
+                    }
                     else -> false
                 }
             }
@@ -434,11 +455,9 @@ fun VodPlayerScreen(
 
                 Spacer(Modifier.height(10.dp))
 
+                // Remote-controlled player: only show progress bar and subtitle button
+                // Play/Pause and Seek are handled by remote DPAD keys, not on-screen buttons
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    VodChip(Icons.Filled.FastRewind, stringResource(R.string.player_rewind)) {
-                        if (growingRec) seekRelative(-15_000) else controller.seekBackward(); interaction++
-                    }
-                    Spacer(Modifier.width(10.dp))
                     VodChip(
                         icon = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
                         label = if (paused) stringResource(R.string.common_play) else stringResource(R.string.player_pause),
@@ -448,18 +467,9 @@ fun VodPlayerScreen(
                         controller.player.playWhenReady = !paused
                         interaction++
                     }
-                    Spacer(Modifier.width(10.dp))
-                    VodChip(Icons.Filled.FastForward, stringResource(R.string.player_forward)) {
-                        if (growingRec) seekRelative(15_000) else controller.seekForward(); interaction++
-                    }
                     Spacer(Modifier.width(20.dp))
                     VodChip(Icons.Filled.ClosedCaption, stringResource(R.string.player_subtitles)) {
                         vodPanel = if (vodPanel == VodPanel.SUBTITLES) VodPanel.NONE else VodPanel.SUBTITLES
-                        interaction++
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    VodChip(Icons.Filled.Audiotrack, stringResource(R.string.player_audio)) {
-                        vodPanel = if (vodPanel == VodPanel.AUDIO) VodPanel.NONE else VodPanel.AUDIO
                         interaction++
                     }
                 }
