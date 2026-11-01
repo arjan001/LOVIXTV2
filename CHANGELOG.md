@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.18
+
+- **Fixed compilation errors** — removed duplicate `import android.util.Log` in LovixTvViewModels.kt
+  and duplicate `val selectedTag` declaration in VodScreens.kt that were causing build failures.
+
 ## 1.0.17
 
 - **Removed shelf labels** — the home page Tags and Cast shelves no longer display "Tags" or
