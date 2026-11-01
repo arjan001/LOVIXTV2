@@ -28,6 +28,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import app.lovixtv.data.parser.displayTitle
 import app.lovixtv.data.parser.ChannelNameNormalizer
 import app.lovixtv.data.repo.CatalogRepository
+import android.util.Log
 import app.lovixtv.data.repo.GenreGroup
 import android.util.Log
 import app.lovixtv.data.repo.MovieVariantGroup
@@ -70,6 +71,8 @@ import kotlinx.coroutines.sync.withLock
  * Grouped in one file on purpose: they are small, they share the same dependency graph, and
  * a contributor tracking down "where does the channel list come from" finds it in one place.
  */
+
+private const val TAG = "LovixTvViewModels"
 
 class SourcesViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = ServiceLocator.get(app)

@@ -87,7 +87,7 @@ import app.lovixtv.ui.vod.SeriesScreen
 enum class Tab(val labelRes: Int, val icon: ImageVector) {
     // LIVE(R.string.nav_live_tv, Icons.Filled.LiveTv),  // Hidden for LOVIX VOD-only
     MOVIES(R.string.nav_movies, Icons.Filled.Movie),
-    FAVORITES(R.string.common_favourites, Icons.Filled.Person),
+    FAVORITES(R.string.common_favourite, Icons.Filled.Person),
     // SHOWS(R.string.nav_shows, Icons.Filled.Tv),  // Hidden for LOVIX VOD-only
     // RECORDINGS(R.string.nav_recordings, Icons.Filled.FiberManualRecord),  // Hidden for LOVIX VOD-only
 }

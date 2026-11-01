@@ -86,14 +86,17 @@ fun MoviesScreen(
     val resume by viewModel.continueWatching.collectAsState()
     val recentlyAdded by viewModel.recentlyAddedMovies.collectAsState()
     val genreRows by viewModel.movieGenreRows.collectAsState()
+    val categories by viewModel.movieCategories.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
     
     // Filter movies by selected tag
     val movies by viewModel.movies.collectAsState()
+    val selectedTag by viewModel.selectedTag.collectAsState()
     val filteredMovies = remember(selectedTag, movies) {
-        if (selectedTag == null) movies
+        val tag = selectedTag
+        if (tag == null) movies
         else movies.filter { movie ->
-            movie.genre?.contains(selectedTag, ignoreCase = true) == true
+            movie.genre?.contains(tag, ignoreCase = true) == true
         }
     }
     
