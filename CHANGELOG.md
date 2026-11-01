@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.22
+
+- **Fixed video player remote controls** — replaced `Key.DpadLeft`/`Key.DpadRight` with the correct
+  `Key.DirectionLeft`/`Key.DirectionRight` constants so the VOD player compiles and responds to
+  TV remote left/right arrow keys for seeking ±10 seconds.
+
 ## 1.0.21
 
 - **Modern inline search** — the home page search bar now opens a QWERTY keyboard at the bottom

@@ -310,15 +310,15 @@ fun VodPlayerScreen(
                     event.type == KeyEventType.KeyDown -> {
                         // Remote DPAD handling: left/right for seek, center for play/pause
                         when (event.key) {
-                            Key.DpadLeft -> {
+                            Key.DirectionLeft -> {
                                 if (growingRec) seekRelative(-10_000) else controller.seekBackward()
                                 reveal(); true
                             }
-                            Key.DpadRight -> {
+                            Key.DirectionRight -> {
                                 if (growingRec) seekRelative(10_000) else controller.seekForward()
                                 reveal(); true
                             }
-                            Key.DpadCenter, Key.Enter -> {
+                            Key.DirectionCenter, Key.Enter -> {
                                 if (controlsVisible) {
                                     paused = !paused
                                     controller.player.playWhenReady = !paused
