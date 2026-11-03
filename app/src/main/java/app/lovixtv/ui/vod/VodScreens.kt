@@ -51,9 +51,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.keyDown
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -761,7 +760,7 @@ private fun SearchAffordance(
                 .clickable {
                     if (!searching) searching = true
                 }
-                .onKeyEvent { keyEvent ->
+                .onPreviewKeyEvent { keyEvent ->
                     if (searching && keyEvent.key == Key.Enter && keyEvent.type == KeyEventType.KeyDown) {
                         navigateToFirst()
                         true
