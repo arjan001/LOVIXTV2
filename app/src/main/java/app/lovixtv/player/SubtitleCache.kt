@@ -18,7 +18,7 @@ import okhttp3.Request
 import java.io.File
 
 /**
- * Caches Whisper-generated subtitle files locally so they play even when the server is down.
+ * Caches Vosk-generated subtitle files locally so they play even when the server is down.
  *
  * On first playback, the subtitle is fetched from the server and saved to the app's cache
  * directory. Subsequent playbacks use the cached file directly. If the server is unreachable,
