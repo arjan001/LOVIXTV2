@@ -110,6 +110,17 @@ class MainActivity : ComponentActivity() {
                 AppSettings.ThemeMode.SYSTEM -> isTelevision || isSystemInDarkTheme()
             }
             LovixTvTheme(darkTheme = darkTheme) {
+                val downloader = ModelDownloader(this)
+                val modelDownloaded = downloader.isModelDownloaded("en")
+                val showModelDialog = remember { mutableStateOf(!modelDownloaded) }
+                
+                if (showModelDialog.value) {
+                    app.lovixtv.ui.player.ModelDownloadDialog(
+                        onDismiss = { showModelDialog.value = false },
+                        onComplete = { showModelDialog.value = false }
+                    )
+                }
+                
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
