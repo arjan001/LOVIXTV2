@@ -184,31 +184,27 @@ fun MoviesScreen(
                     }
                 }
                 // Curated home: Continue Watching section above the grid
-                else -> LazyColumn(Modifier.fillMaxSize()) {
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                     // Section 1: Continue Watching (full-width horizontal carousel at top)
                     if (resume.isNotEmpty()) item {
                         ContinueWatchingRow(resume, onResume)
                     }
-                    // Section 2: All films adaptive grid
+                    // Section 2: All films grid
                     if (displayMovies.isNotEmpty()) {
-                        item {
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                gridItems(displayMovies, key = { it.id }) { movie ->
-                                    PosterCard(
-                                        title = movie.displayTitle,
-                                        posterUrl = movie.posterUrl,
-                                        subtitle = movie.year?.toString(),
-                                        rating = movie.rating,
-                                        onClick = { onOpenMovie(movie) },
-                                    )
-                                }
-                            }
+                        gridItems(displayMovies, key = { it.id }) { movie ->
+                            PosterCard(
+                                title = movie.displayTitle,
+                                posterUrl = movie.posterUrl,
+                                subtitle = movie.year?.toString(),
+                                rating = movie.rating,
+                                onClick = { onOpenMovie(movie) },
+                            )
                         }
                     }
                 }
