@@ -10,9 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.vosk.Model
 import org.vosk.Recognizer
-import org.vosk.SpeechService
 import java.io.File
-import java.io.FileInputStream
 import java.io.InputStream
 
 /**
@@ -75,7 +73,8 @@ class VoskSubtitleService(private val context: Context) {
                 val bytesRead = audioStream.read(buffer)
                 if (bytesRead == -1) break
 
-                if (recognizer!!.acceptWaveform(buffer, bytesRead)) {
+                val isFinal = recognizer!!.acceptWaveform(buffer, bytesRead)
+                if (isFinal) {
                     val result = recognizer!!.result
                     val segment = parseResult(result)
                     if (segment != null) {
@@ -128,7 +127,7 @@ class VoskSubtitleService(private val context: Context) {
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse result", e)
-            null
+            return null
         }
     }
 
