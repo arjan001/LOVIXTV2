@@ -29,20 +29,25 @@ fun ModelDownloadDialog(
 
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
-            // Download English model first
-            val success = downloader.downloadModel("en") { p ->
-                progress = p
-                status = "Downloading English model... ${(p * 100).toInt()}%"
-            }
-            
-            if (success) {
+            try {
+                // Download English model first
+                val success = downloader.downloadModel("en") { p ->
+                    progress = p
+                    status = "Downloading English model... ${(p * 100).toInt()}%"
+                }
+
+                if (success) {
+                    downloading = false
+                    status = "Model download complete!"
+                    kotlinx.coroutines.delay(1000)
+                    onComplete()
+                } else {
+                    downloading = false
+                    status = "Download failed. Subtitles will not be available."
+                }
+            } catch (e: Exception) {
                 downloading = false
-                status = "Model download complete!"
-                kotlinx.coroutines.delay(1000)
-                onComplete()
-            } else {
-                downloading = false
-                status = "Download failed. Please try again."
+                status = "Download failed: ${e.message}. Subtitles will not be available."
             }
         }
     }
@@ -79,7 +84,7 @@ fun ModelDownloadDialog(
                         onDismiss()
                         onComplete()
                     }) {
-                        Text("Continue")
+                        Text(if (status.contains("failed", ignoreCase = true)) "Skip" else "Continue")
                     }
                 }
             }

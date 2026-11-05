@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
+import java.util.zip.ZipInputStream
 
 /**
  * Downloads Vosk models to device storage.
@@ -108,18 +109,31 @@ class ModelDownloader(private val context: Context) {
     }
 
     /**
-     * Extract a zip file to destination directory.
+     * Extract a zip file to destination directory using Java's built-in ZipInputStream.
+     * This avoids depending on the 'unzip' command which is not available on Android.
      */
     private fun extractZip(zipFile: File, destDir: File) {
         destDir.mkdirs()
         
-        val process = ProcessBuilder(
-            "unzip", "-o", zipFile.absolutePath, "-d", destDir.absolutePath
-        ).start()
-        
-        val exitCode = process.waitFor()
-        if (exitCode != 0) {
-            throw RuntimeException("Failed to extract zip file")
+        ZipInputStream(zipFile.inputStream()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                val entryFile = File(destDir, entry.name)
+                // Prevent zip-slip vulnerability
+                if (!entryFile.canonicalPath.startsWith(destDir.canonicalPath)) {
+                    throw SecurityException("Malicious zip entry: ${entry.name}")
+                }
+                if (entry.isDirectory) {
+                    entryFile.mkdirs()
+                } else {
+                    entryFile.parentFile?.mkdirs()
+                    FileOutputStream(entryFile).use { output ->
+                        zis.copyTo(output)
+                    }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
         }
     }
 

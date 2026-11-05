@@ -6,6 +6,7 @@
 package app.lovixtv.subtitle
 
 import android.content.Context
+import android.util.Log
 import java.io.Closeable
 import java.io.File
 import kotlinx.coroutines.*
@@ -28,6 +29,10 @@ class LiveSubtitleEngine(
     private val context: Context,
     private val httpClient: OkHttpClient,
 ) : Closeable {
+
+    companion object {
+        private const val TAG = "LiveSubtitleEngine"
+    }
 
     sealed class State {
         object Idle : State()
@@ -88,6 +93,8 @@ class LiveSubtitleEngine(
 
     /**
      * Start the subtitle engine with the given configuration.
+     * If the model is not available, it will be downloaded in the background.
+     * If initialization fails, the engine reports an error but does not crash the app.
      */
     suspend fun start(config: Config) {
         if (!config.enabled) return
@@ -100,7 +107,13 @@ class LiveSubtitleEngine(
             val modelInfo = modelMap[config.recognitionLanguage] ?: modelMap["en"]!!
             if (!modelDownloader.isModelAvailable(modelInfo)) {
                 _state.value = State.DownloadingModel
-                modelDownloader.ensureModel(modelInfo)
+                try {
+                    modelDownloader.ensureModel(modelInfo)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to download VOSK model: ${e.message}", e)
+                    _state.value = State.Error("Failed to download speech model: ${e.message}")
+                    return
+                }
             }
 
             // Initialize VOSK recognizer with the correct language code
@@ -113,11 +126,17 @@ class LiveSubtitleEngine(
                 isRunning = true
                 startRecognitionLoop()
                 // Start audio recording to feed VOSK
-                audioRecorder.start()
+                try {
+                    audioRecorder.start()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start audio recorder: ${e.message}", e)
+                    _state.value = State.Error("Microphone permission required for subtitles")
+                }
             } else {
-                _state.value = State.Error("Failed to initialize speech recognition")
+                _state.value = State.Error("Speech recognition not available on this device")
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Error starting subtitles: ${e.message}", e)
             _state.value = State.Error("Error starting subtitles: ${e.message}")
         }
     }

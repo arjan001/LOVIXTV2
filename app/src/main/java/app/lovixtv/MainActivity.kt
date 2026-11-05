@@ -58,7 +58,6 @@ import app.lovixtv.core.AppSettings
 import app.lovixtv.core.LovixDefaults
 import app.lovixtv.core.ServiceLocator
 import app.lovixtv.data.parser.displayTitle
-import app.lovixtv.player.ModelDownloader
 import app.lovixtv.ui.MainScreen
 import app.lovixtv.ui.ProfilesViewModel
 import app.lovixtv.ui.SourcesViewModel
@@ -110,17 +109,8 @@ class MainActivity : ComponentActivity() {
                 AppSettings.ThemeMode.SYSTEM -> isTelevision || isSystemInDarkTheme()
             }
             LovixTvTheme(darkTheme = darkTheme) {
-                val downloader = ModelDownloader(this)
-                val modelDownloaded = downloader.isModelDownloaded("en")
-                val showModelDialog = remember { mutableStateOf(!modelDownloaded) }
-                
-                if (showModelDialog.value) {
-                    app.lovixtv.ui.player.ModelDownloadDialog(
-                        onDismiss = { showModelDialog.value = false },
-                        onComplete = { showModelDialog.value = false }
-                    )
-                }
-                
+                // Subtitle model download is optional — do not block the app if it fails.
+                // The model is downloaded in the background when the user enables live subtitles.
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
