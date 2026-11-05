@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.26
+
+- **Version bump** — new release to trigger updated APK build via GitHub Actions.
+
 ## 1.0.25
 
 - **Whisper subtitles fixed** — subtitle service now binds to `0.0.0.0` on the VPS so the Android
