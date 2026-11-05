@@ -111,7 +111,8 @@ class VoskRecognizer(
     fun shutdown() {
         try {
             recognizer?.close()
-            model?.close()
+            // Note: VOSK Model does not expose a close() method in the Android SDK.
+            // The native resources are released when the Model reference is garbage collected.
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {

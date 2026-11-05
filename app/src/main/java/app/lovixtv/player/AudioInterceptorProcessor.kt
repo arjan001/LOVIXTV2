@@ -23,6 +23,7 @@ class AudioInterceptorProcessor : AudioProcessor {
         private const val TAG = "AudioInterceptor"
         private const val SAMPLE_RATE = 16000
         private const val CHANNEL_COUNT = 1
+        private var outputBuffer: ByteBuffer? = null
     }
 
     private var active = false
@@ -94,7 +95,7 @@ class AudioInterceptorProcessor : AudioProcessor {
         outputBuffer?.clear()
     }
 
-    companion object {
-        private var outputBuffer: ByteBuffer? = null
+    override fun queueEndOfStream() {
+        // Signal end of stream - no special handling needed for interception
     }
 }
