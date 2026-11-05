@@ -75,8 +75,9 @@ fun ModelDownloadDialog(
                 } else {
                     Text(status)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onComplete) {
+                    Button(onClick = {
                         onDismiss()
+                        onComplete()
                     }) {
                         Text("Continue")
                     }

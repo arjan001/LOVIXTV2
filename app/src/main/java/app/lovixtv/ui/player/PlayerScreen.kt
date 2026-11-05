@@ -105,6 +105,7 @@ import app.lovixtv.data.model.Channel
 import app.lovixtv.data.model.shownName
 import app.lovixtv.player.PlaybackQueue
 import app.lovixtv.player.PlayerController
+import app.lovixtv.player.RealTimeTranscriptionService
 import app.lovixtv.ui.RecordingBackgroundDialog
 import app.lovixtv.ui.RecordingBackgroundPrompt
 import app.lovixtv.ui.player.SubtitleState
@@ -143,6 +144,7 @@ fun PlayerScreen(
     val scope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
     val subtitlesDefault by settings.subtitlesEnabled.collectAsState()
     val subtitleState = remember { SubtitleState() }
+    val transcriptionService = remember { RealTimeTranscriptionService(context, graph.streamingHttpClient) }
     val controller = remember {
         PlayerController(
             context, scope, graph.streamingHttpClient,
@@ -168,6 +170,25 @@ fun PlayerScreen(
             currentPosition = controller.player.currentPosition
             duration = controller.player.duration
         }
+    }
+    
+    // Start/stop transcription based on subtitle state
+    LaunchedEffect(subtitleState.enabled.value, subtitleState.language.value) {
+        if (subtitleState.enabled.value) {
+            transcriptionService.start(
+                controller.player,
+                sourceLanguage = "en",
+                targetLang = subtitleState.language.value
+            )
+        } else {
+            transcriptionService.stop()
+        }
+    }
+    
+    // Collect transcription results
+    LaunchedEffect(transcriptionService.currentText.collectAsState().value) {
+        subtitleState.currentText.value = transcriptionService.currentText.value
+        subtitleState.translatedText.value = transcriptionService.translatedText.value
     }
 
     // Hold the screen awake while the player is on screen. A view-level keepScreenOn flag isn't

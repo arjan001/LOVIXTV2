@@ -21,7 +21,7 @@ import org.json.JSONObject
  */
 class LibreTranslateService(
     private val httpClient: OkHttpClient,
-    private val serverUrl: String = "http://localhost:5000"
+    private val serverUrl: String = "https://libretranslate.de"
 ) {
     companion object {
         private const val TAG = "LibreTranslateService"
