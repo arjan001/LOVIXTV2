@@ -58,6 +58,7 @@ import app.lovixtv.core.AppSettings
 import app.lovixtv.core.LovixDefaults
 import app.lovixtv.core.ServiceLocator
 import app.lovixtv.data.parser.displayTitle
+import app.lovixtv.player.ModelDownloader
 import app.lovixtv.ui.MainScreen
 import app.lovixtv.ui.ProfilesViewModel
 import app.lovixtv.ui.SourcesViewModel
