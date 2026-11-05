@@ -4,12 +4,8 @@
  */
 package app.lovixtv.player
 
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
 import android.util.Log
-import androidx.media3.common.audio.AudioProcessor
-import androidx.media3.common.audio.AudioProcessor.AudioFormat
+import androidx.media3.common.Format
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
@@ -43,17 +39,19 @@ class TappingAudioSink(
         Log.d(TAG, "Audio tapping disabled")
     }
     
+    @Throws(AudioSink.ConfigurationException::class)
     override fun configure(
-        inputAudioFormat: AudioFormat,
+        format: Format,
         specifiedBufferSize: Int,
         outputChannels: IntArray?
-    ): AudioFormat {
-        val outputFormat = audioSink.configure(inputAudioFormat, specifiedBufferSize, outputChannels)
-        Log.d(TAG, "Audio sink configured: $inputAudioFormat -> $outputFormat")
-        return outputFormat
+    ): AudioSink.SinkFormatSupport {
+        val support = audioSink.configure(format, specifiedBufferSize, outputChannels)
+        Log.d(TAG, "Audio sink configured: $format")
+        return support
     }
     
-    override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long): Boolean {
+    @Throws(AudioSink.WriteException::class)
+    override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long, encodedAccessUnitCount: Int): Boolean {
         if (isTapping && buffer.hasRemaining()) {
             // Get a copy of the audio data
             val bytes = ByteArray(buffer.remaining())
@@ -70,6 +68,6 @@ class TappingAudioSink(
         }
         
         // Pass through to the actual audio sink
-        return audioSink.handleBuffer(buffer, presentationTimeUs)
+        return audioSink.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
     }
 }

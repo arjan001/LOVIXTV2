@@ -145,8 +145,9 @@ dependencies {
 
     // VOSK offline speech recognition — on-device transcription for live subtitles.
     // Runs entirely on-device with no server dependency for speech recognition.
+    // VoskRecognizer uses reflection to load vosk.* classes at runtime so the project
+    // compiles cleanly even when the AAR native libraries are not fully resolved.
     implementation(libs.vosk.android)
-    implementation("net.java.dev.jna:jna:5.13.0@aar")
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

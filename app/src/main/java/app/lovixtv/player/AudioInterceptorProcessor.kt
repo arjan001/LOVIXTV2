@@ -57,6 +57,8 @@ class AudioInterceptorProcessor : AudioProcessor {
         inputFormat = inputAudioFormat
         // Pass through the original format unchanged
         outputFormat = inputAudioFormat
+        // Initialize the output buffer
+        outputBuffer = ByteBuffer.allocate(16 * 1024)
         return inputAudioFormat
     }
 
@@ -79,12 +81,14 @@ class AudioInterceptorProcessor : AudioProcessor {
         outputBuffer?.put(inputBuffer.duplicate())
     }
 
-    override fun getOutput(): ByteBuffer? {
-        return outputBuffer
+    private val dummyBuffer: ByteBuffer = ByteBuffer.allocate(0)
+
+    override fun getOutput(): ByteBuffer {
+        return outputBuffer ?: dummyBuffer
     }
 
     override fun isEnded(): Boolean {
-        return outputBuffer?.remaining() == 0
+        return outputBuffer?.remaining() == 0 && outputBuffer?.position() != 0
     }
 
     override fun flush() {

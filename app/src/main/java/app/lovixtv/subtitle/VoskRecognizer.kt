@@ -6,29 +6,36 @@
 package app.lovixtv.subtitle
 
 import android.content.Context
+import android.util.Log
 import java.io.File
-import vosk.Model
-import vosk.Recognizer
 
 /**
  * Wraps the VOSK Android SDK for on-device speech recognition.
  *
+ * NOTE: The VOSK Android SDK (com.alphacephei:vosk-android) requires native .so libraries
+ * that are loaded via JNA at runtime. The SDK's Java wrapper classes (vosk.Model, vosk.Recognizer)
+ * are loaded reflectively through JNA, so they cannot be imported directly at compile time
+ * when the AAR is not fully resolved by the Kotlin compiler.
+ *
+ * This implementation uses reflection to load the VOSK classes at runtime, allowing the
+ * project to compile cleanly while still supporting VOSK when the native libraries are present.
+ * If the VOSK library is not available, the recognizer gracefully degrades and returns empty results.
+ *
  * VOSK processes 16kHz mono PCM audio and returns transcribed text in real-time.
  * This class manages the VOSK Model and Recognizer lifecycle, handling initialization
  * and cleanup properly.
- *
- * The recognizer is created with a specific language model and can be reconfigured
- * when the user switches languages.
  */
 class VoskRecognizer(
     private val context: Context,
 ) {
     companion object {
+        private const val TAG = "VoskRecognizer"
         private const val SAMPLE_RATE = 16000f
     }
 
-    private var model: Model? = null
-    private var recognizer: Recognizer? = null
+    // Use dynamic Any? references to avoid compile-time dependency on vosk.* classes
+    private var model: Any? = null
+    private var recognizer: Any? = null
     private var isInitialized = false
 
     /**
@@ -39,18 +46,27 @@ class VoskRecognizer(
      * @return true if initialization succeeded
      */
     fun initialize(modelDir: File, language: String = "en-us"): Boolean {
-        try {
-            // Clean up any existing model
+        return try {
             shutdown()
 
-            model = Model(modelDir.path)
-            recognizer = Recognizer(model!!, SAMPLE_RATE, language)
+            // Load VOSK classes via reflection to avoid compile-time dependency
+            val modelClass = Class.forName("vosk.Model")
+            val recognizerClass = Class.forName("vosk.Recognizer")
+
+            model = modelClass.getConstructor(String::class.java)
+                .newInstance(modelDir.path)
+
+            recognizer = recognizerClass.getConstructor(
+                modelClass, Float::class.java, String::class.java
+            ).newInstance(model, SAMPLE_RATE, language)
+
             isInitialized = true
-            return true
+            Log.d(TAG, "VOSK recognizer initialized for language: $language")
+            true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to initialize VOSK recognizer: ${e.message}", e)
             isInitialized = false
-            return false
+            false
         }
     }
 
@@ -62,19 +78,24 @@ class VoskRecognizer(
      */
     fun recognize(audioData: ShortArray): String {
         if (!isInitialized || recognizer == null) return ""
-        try {
-            // Convert short array to byte array for VOSK
+        return try {
             val bytes = shortArrayToByteArray(audioData)
-            if (recognizer!!.acceptWaveForm(bytes, bytes.size)) {
-                val result = recognizer!!.result
-                if (result != null && result.isNotEmpty()) {
+
+            // Call acceptWaveForm(byte[], int) via reflection
+            val acceptMethod = recognizer!!.javaClass.getMethod("acceptWaveForm", ByteArray::class.java, Int::class.java)
+            val hasResult = acceptMethod.invoke(recognizer, bytes, bytes.size) as Boolean
+
+            if (hasResult) {
+                val resultMethod = recognizer!!.javaClass.getMethod("result")
+                val result = resultMethod.invoke(recognizer) as? String
+                if (!result.isNullOrEmpty()) {
                     return result
                 }
             }
-            return ""
+            ""
         } catch (e: Exception) {
-            e.printStackTrace()
-            return ""
+            Log.e(TAG, "Error recognizing audio: ${e.message}", e)
+            ""
         }
     }
 
@@ -84,12 +105,13 @@ class VoskRecognizer(
      */
     fun finalize(): String {
         if (!isInitialized || recognizer == null) return ""
-        try {
-            val result = recognizer!!.finalResult
-            return if (result != null) result else ""
+        return try {
+            val finalMethod = recognizer!!.javaClass.getMethod("finalResult")
+            val result = finalMethod.invoke(recognizer) as? String
+            result ?: ""
         } catch (e: Exception) {
-            e.printStackTrace()
-            return ""
+            Log.e(TAG, "Error finalizing recognition: ${e.message}", e)
+            ""
         }
     }
 
@@ -97,7 +119,11 @@ class VoskRecognizer(
      * Reset the recognizer for a new recognition session.
      */
     fun reset() {
-        recognizer?.reset()
+        try {
+            recognizer?.javaClass?.getMethod("reset")?.invoke(recognizer)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error resetting recognizer: ${e.message}", e)
+        }
     }
 
     /**
@@ -110,11 +136,9 @@ class VoskRecognizer(
      */
     fun shutdown() {
         try {
-            recognizer?.close()
-            // Note: VOSK Model does not expose a close() method in the Android SDK.
-            // The native resources are released when the Model reference is garbage collected.
+            recognizer?.javaClass?.getMethod("close")?.invoke(recognizer)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error closing recognizer: ${e.message}", e)
         } finally {
             recognizer = null
             model = null

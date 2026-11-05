@@ -6,10 +6,11 @@
 package app.lovixtv.subtitle
 
 import android.content.Context
+import java.io.Closeable
+import java.io.File
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import okhttp3.OkHttpClient
-import java.io.File
 
 /**
  * Central coordinator for live subtitle generation.

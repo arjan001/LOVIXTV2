@@ -72,7 +72,7 @@ class ModelDownloader(
 
     /** Returns total size of all downloaded models in bytes. */
     fun totalModelsSize(): Long {
-        modelsDir.listFiles()?.sumOf { it.walkTopDown().sumOf { f -> f.length() } } ?: 0
+        return modelsDir.listFiles()?.sumOf { it.walkTopDown().sumOf { f -> f.length() } } ?: 0
     }
 
     private suspend fun downloadAndExtract(modelInfo: ModelInfo, destDir: File) {

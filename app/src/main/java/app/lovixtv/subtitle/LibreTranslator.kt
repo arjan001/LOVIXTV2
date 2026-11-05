@@ -68,12 +68,15 @@ class LibreTranslator(
         if (text.trim().isEmpty() || text.length < 3) return@withContext text
 
         try {
-            val requestBody = json.encodeToString(TranslateRequest(
-                q = text,
-                source = sourceLang,
-                target = targetLang,
-                format = "text"
-            )).toRequestBody(JSON_MEDIA_TYPE)
+            val requestBody = json.encodeToString(
+                serializer = TranslateRequest.serializer(),
+                value = TranslateRequest(
+                    q = text,
+                    source = sourceLang,
+                    target = targetLang,
+                    format = "text"
+                )
+            ).toRequestBody(JSON_MEDIA_TYPE)
 
             val request = Request.Builder()
                 .url(apiUrl)

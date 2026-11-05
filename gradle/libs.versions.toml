@@ -23,7 +23,6 @@ truth = "1.4.4"
 robolectric = "4.13"
 androidxTestExt = "1.2.1"
 vosk = "0.3.47"
-jna = "5.13.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -84,7 +83,6 @@ androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version
 # VOSK offline speech recognition — on-device transcription for live subtitles.
 # Runs entirely on-device with no server dependency for recognition.
 vosk-android = { group = "com.alphacephei", name = "vosk-android", version.ref = "vosk" }
-jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

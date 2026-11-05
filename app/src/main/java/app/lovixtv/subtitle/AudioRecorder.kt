@@ -109,21 +109,20 @@ class AudioRecorder(
             val buffer = ShortArray(bytesPerChunk / 2) // 2 bytes per short
 
             while (isRecording) {
-                audioRecord?.use { record ->
-                    if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-                        return
-                    }
+                val record = audioRecord
+                if (record == null || record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+                    break
+                }
 
-                    val bytesRead = record.read(buffer, 0, buffer.size)
-                    if (bytesRead > 0) {
-                        // Feed the audio chunk to the VOSK engine
-                        val actualData = if (bytesRead < buffer.size) {
-                            buffer.copyOf(bytesRead)
-                        } else {
-                            buffer
-                        }
-                        engine.feedAudio(actualData)
+                val bytesRead = record.read(buffer, 0, buffer.size)
+                if (bytesRead > 0) {
+                    // Feed the audio chunk to the VOSK engine
+                    val actualData = if (bytesRead < buffer.size) {
+                        buffer.copyOf(bytesRead)
+                    } else {
+                        buffer
                     }
+                    engine.feedAudio(actualData)
                 }
 
                 // Small delay to maintain consistent chunk timing
