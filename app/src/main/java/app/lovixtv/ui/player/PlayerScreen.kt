@@ -105,11 +105,11 @@ import app.lovixtv.data.model.Channel
 import app.lovixtv.data.model.shownName
 import app.lovixtv.player.PlaybackQueue
 import app.lovixtv.player.PlayerController
-import app.lovixtv.player.RealTimeTranscriptionService
+import app.lovixtv.subtitle.LiveSubtitleEngine
+import app.lovixtv.subtitle.SubtitleOverlay
+import app.lovixtv.subtitle.SubtitleLanguageButton
 import app.lovixtv.ui.RecordingBackgroundDialog
 import app.lovixtv.ui.RecordingBackgroundPrompt
-import app.lovixtv.ui.player.SubtitleState
-import app.lovixtv.ui.player.SubtitleOverlay
 import coil.compose.AsyncImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -143,8 +143,31 @@ fun PlayerScreen(
     val settings = remember { graph.settings }
     val scope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
     val subtitlesDefault by settings.subtitlesEnabled.collectAsState()
-    val subtitleState = remember { SubtitleState() }
-    val transcriptionService = remember { RealTimeTranscriptionService(context, graph.streamingHttpClient) }
+    val liveSubtitleEngine = remember { graph.liveSubtitleEngine }
+    val liveSubtitleEnabled by settings.liveSubtitlesEnabled.collectAsState()
+    val liveSubtitleLang by settings.liveSubtitleLanguage.collectAsState()
+
+    // Start/stop live subtitles when settings change
+    LaunchedEffect(liveSubtitleEnabled, liveSubtitleLang) {
+        if (liveSubtitleEnabled && liveSubtitleLang != "off") {
+            liveSubtitleEngine.start(
+                LiveSubtitleEngine.Config(
+                    recognitionLanguage = "en",
+                    displayLanguage = liveSubtitleLang,
+                    enabled = true,
+                )
+            )
+        } else {
+            liveSubtitleEngine.stop()
+        }
+    }
+
+    // Clean up live subtitle engine when leaving the player
+    DisposableEffect(Unit) {
+        onDispose {
+            liveSubtitleEngine.stop()
+        }
+    }
     val controller = remember {
         PlayerController(
             context, scope, graph.streamingHttpClient,
@@ -172,24 +195,6 @@ fun PlayerScreen(
         }
     }
     
-    // Start/stop transcription based on subtitle state
-    LaunchedEffect(subtitleState.enabled.value, subtitleState.language.value) {
-        if (subtitleState.enabled.value) {
-            transcriptionService.start(
-                controller.player,
-                sourceLanguage = "en",
-                targetLang = subtitleState.language.value
-            )
-        } else {
-            transcriptionService.stop()
-        }
-    }
-    
-    // Collect transcription results
-    LaunchedEffect(transcriptionService.currentText.collectAsState().value) {
-        subtitleState.currentText.value = transcriptionService.currentText.value
-        subtitleState.translatedText.value = transcriptionService.translatedText.value
-    }
 
     // Hold the screen awake while the player is on screen. A view-level keepScreenOn flag isn't
     // reliable on every TV box, so we set the window flag on the Activity directly — that's what
@@ -468,15 +473,11 @@ fun PlayerScreen(
             update = { it.resizeMode = resizeMode },
         )
 
-        // Real-time subtitle overlay
-        if (subtitleState.enabled.value && subtitleState.currentText.value.isNotEmpty()) {
-            SubtitleOverlay(
-                text = if (subtitleState.language.value == "off") 
-                    subtitleState.currentText.value 
-                else 
-                    subtitleState.translatedText.value
-            )
-        }
+        // Live subtitle overlay — displayed on top of the video
+        SubtitleOverlay(
+            engine = liveSubtitleEngine,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         // The channel number as you type it, top-right, until it resolves.
         if (numberEntry.isNotEmpty() && !inPip) {
@@ -608,11 +609,19 @@ fun PlayerScreen(
                     }
 
                     Spacer(Modifier.width(20.dp))
-                    BarChip(Icons.Filled.Subtitles, subtitleState.getLanguageName(), panel == Panel.SUBTITLES) {
-                        // Cycle through subtitle languages: Off → English → Spanish → Dutch
-                        subtitleState.cycleLanguage()
-                        panel = Panel.NONE
+                    // Live subtitle button — cycles through languages: Off -> English -> Spanish -> Dutch -> etc.
+                    SubtitleLanguageButton(
+                        engine = liveSubtitleEngine,
+                    ) {
+                        val nextLang = liveSubtitleEngine.cycleLanguage()
+                        settings.setLiveSubtitleLanguage(nextLang)
+                        settings.setLiveSubtitlesEnabled(nextLang != "off")
                         interaction++
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    // Server subtitle track selector (Whisper-generated .vtt files)
+                    BarChip(Icons.Filled.Subtitles, stringResource(R.string.player_subtitles), panel == Panel.SUBTITLES) {
+                        panel = if (panel == Panel.SUBTITLES) Panel.NONE else Panel.SUBTITLES; interaction++
                     }
                     Spacer(Modifier.width(10.dp))
                     BarChip(Icons.Filled.Audiotrack, stringResource(R.string.player_audio), panel == Panel.AUDIO) {

@@ -18,6 +18,7 @@ import app.lovixtv.data.repo.RecordingRepository
 import app.lovixtv.data.repo.ReminderRepository
 import app.lovixtv.data.repo.SourceRepository
 import app.lovixtv.recording.RecordingEngine
+import app.lovixtv.subtitle.LiveSubtitleEngine
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 
@@ -140,6 +141,11 @@ object ServiceLocator {
                 appContext, recordingRepository, sourceRepository, settings,
                 database.channels(), epgRepository,
             )
+        }
+
+        /** Live subtitle engine for on-device speech recognition and translation. */
+        val liveSubtitleEngine: LiveSubtitleEngine by lazy {
+            LiveSubtitleEngine(appContext, httpClient)
         }
     }
 }

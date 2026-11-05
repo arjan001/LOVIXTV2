@@ -93,6 +93,9 @@ import app.lovixtv.core.SleepTimer
 import app.lovixtv.core.findActivity
 import app.lovixtv.player.PlayerController
 import app.lovixtv.player.SubtitleCache
+import app.lovixtv.subtitle.LiveSubtitleEngine
+import app.lovixtv.subtitle.SubtitleOverlay
+import app.lovixtv.subtitle.SubtitleLanguageButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -199,6 +202,33 @@ fun VodPlayerScreen(
 
     // Subtitle cache: downloads Whisper subtitles and serves from local cache when server is down.
     val subtitleCache = remember { SubtitleCache(context, graph.streamingHttpClient) }
+
+    // Live subtitle engine: on-device speech recognition with VOSK + translation with LibreTranslate
+    val liveSubtitleEngine = remember { graph.liveSubtitleEngine }
+    val liveSubtitleEnabled by settings.liveSubtitlesEnabled.collectAsState()
+    val liveSubtitleLang by settings.liveSubtitleLanguage.collectAsState()
+
+    // Start/stop live subtitles when settings change
+    LaunchedEffect(liveSubtitleEnabled, liveSubtitleLang) {
+        if (liveSubtitleEnabled && liveSubtitleLang != "off") {
+            liveSubtitleEngine.start(
+                LiveSubtitleEngine.Config(
+                    recognitionLanguage = "en",
+                    displayLanguage = liveSubtitleLang,
+                    enabled = true,
+                )
+            )
+        } else {
+            liveSubtitleEngine.stop()
+        }
+    }
+
+    // Clean up live subtitle engine when leaving the player
+    DisposableEffect(Unit) {
+        onDispose {
+            liveSubtitleEngine.stop()
+        }
+    }
 
     // Build server subtitle track URLs from the LOVIX subtitle service (port 6970).
     // Uses the configurable subtitle server URL from AppSettings, defaulting to vpn.istreamix.com.
@@ -357,6 +387,12 @@ fun VodPlayerScreen(
             },
         )
 
+        // Live subtitle overlay — displayed on top of the video
+        SubtitleOverlay(
+            engine = liveSubtitleEngine,
+            modifier = Modifier.fillMaxSize(),
+        )
+
         when (val current = state) {
             is PlayerController.State.Buffering ->
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -458,7 +494,7 @@ fun VodPlayerScreen(
 
                 Spacer(Modifier.height(10.dp))
 
-                // Remote-controlled player: only show progress bar and subtitle button
+                // Remote-controlled player: only show progress bar and subtitle buttons
                 // Play/Pause and Seek are handled by remote DPAD keys, not on-screen buttons
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     VodChip(
@@ -471,6 +507,17 @@ fun VodPlayerScreen(
                         interaction++
                     }
                     Spacer(Modifier.width(20.dp))
+                    // Live subtitle button — cycles through languages: Off -> English -> Spanish -> Dutch -> etc.
+                    SubtitleLanguageButton(
+                        engine = liveSubtitleEngine,
+                    ) {
+                        val nextLang = liveSubtitleEngine.cycleLanguage()
+                        settings.setLiveSubtitleLanguage(nextLang)
+                        settings.setLiveSubtitlesEnabled(nextLang != "off")
+                        interaction++
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    // Server subtitle track selector (Whisper-generated .vtt files)
                     VodChip(Icons.Filled.ClosedCaption, stringResource(R.string.player_subtitles)) {
                         vodPanel = if (vodPanel == VodPanel.SUBTITLES) VodPanel.NONE else VodPanel.SUBTITLES
                         interaction++

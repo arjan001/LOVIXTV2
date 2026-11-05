@@ -440,6 +440,34 @@ class AppSettings private constructor(context: Context) {
             prefs.getString(KEY_STREMIO_ADDONS, null)?.let { addonJson.decodeFromString<List<StremioAddon>>(it) }
         }.getOrNull() ?: emptyList()
 
+    // ---- Live subtitles (VOSK on-device speech recognition) ----------------------------------
+
+    /**
+     * Whether live on-device subtitles are enabled. When true, the player uses VOSK to
+     * transcribe audio in real-time and display subtitles, optionally translated.
+     */
+    private val _liveSubtitlesEnabled = MutableStateFlow(prefs.getBoolean(KEY_LIVE_SUBTITLES, false))
+    val liveSubtitlesEnabled: StateFlow<Boolean> = _liveSubtitlesEnabled.asStateFlow()
+
+    fun setLiveSubtitlesEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_LIVE_SUBTITLES, enabled).apply()
+        _liveSubtitlesEnabled.value = enabled
+    }
+
+    /**
+     * The display language for live subtitles. "off" means subtitles are disabled.
+     * Other values are ISO language codes: "en", "es", "nl", "fr", "de", etc.
+     */
+    private val _liveSubtitleLanguage = MutableStateFlow(
+        prefs.getString(KEY_LIVE_SUBTITLE_LANG, "off") ?: "off"
+    )
+    val liveSubtitleLanguage: StateFlow<String> = _liveSubtitleLanguage.asStateFlow()
+
+    fun setLiveSubtitleLanguage(language: String) {
+        prefs.edit().putString(KEY_LIVE_SUBTITLE_LANG, language).apply()
+        _liveSubtitleLanguage.value = language
+    }
+
     companion object {
         private const val KEY_THEME = "theme_mode"
         private const val KEY_CHANNEL_LAYOUT = "channel_layout"
@@ -486,6 +514,8 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_LIVE_PAUSE = "live_pause_enabled"
         private const val KEY_SUBTITLE_SERVER = "subtitle_server_url"
         private const val DEFAULT_SUBTITLE_SERVER = "vpn.istreamix.com"
+        private const val KEY_LIVE_SUBTITLES = "live_subtitles_enabled"
+        private const val KEY_LIVE_SUBTITLE_LANG = "live_subtitle_language"
 
         @Volatile private var instance: AppSettings? = null
 

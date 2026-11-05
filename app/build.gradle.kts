@@ -143,8 +143,10 @@ dependencies {
     // back in-app over the network. Pure-Java SMB2/3, no native bits.
     implementation("com.hierynomus:smbj:0.12.2")
 
-    // Vosk speech recognition for real-time subtitle generation
-    implementation("com.alphacephei:vosk-android:0.3.45")
+    // VOSK offline speech recognition — on-device transcription for live subtitles.
+    // Runs entirely on-device with no server dependency for speech recognition.
+    implementation(libs.vosk.android)
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
