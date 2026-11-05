@@ -44,10 +44,9 @@ class TappingAudioSink(
         format: Format,
         specifiedBufferSize: Int,
         outputChannels: IntArray?
-    ): AudioSink.SinkFormatSupport {
-        val support = audioSink.configure(format, specifiedBufferSize, outputChannels)
+    ) {
+        audioSink.configure(format, specifiedBufferSize, outputChannels)
         Log.d(TAG, "Audio sink configured: $format")
-        return support
     }
     
     @Throws(AudioSink.WriteException::class)
