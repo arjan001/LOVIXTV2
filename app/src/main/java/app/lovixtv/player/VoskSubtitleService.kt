@@ -73,8 +73,8 @@ class VoskSubtitleService(private val context: Context) {
                 val bytesRead = audioStream.read(buffer)
                 if (bytesRead == -1) break
 
-                // Android Vosk API: acceptWaveform takes only the data array
-                val isFinal = recognizer!!.acceptWaveform(buffer)
+                // Android Vosk API: acceptWaveForm with capital F
+                val isFinal = recognizer!!.acceptWaveForm(buffer)
                 if (isFinal) {
                     val result = recognizer!!.result
                     val segment = parseResult(result)
