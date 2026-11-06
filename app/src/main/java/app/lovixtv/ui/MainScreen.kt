@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
@@ -88,7 +87,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 enum class Tab(val labelRes: Int, val icon: ImageVector) {
     // LIVE(R.string.nav_live_tv, Icons.Filled.LiveTv),  // Hidden for LOVIX VOD-only
     MOVIES(R.string.nav_movies, Icons.Filled.Movie),
-    FAVORITES(R.string.common_favourite, Icons.Filled.Person),
     // SHOWS(R.string.nav_shows, Icons.Filled.Tv),  // Hidden for LOVIX VOD-only
     // RECORDINGS(R.string.nav_recordings, Icons.Filled.FiberManualRecord),  // Hidden for LOVIX VOD-only
 }
@@ -135,9 +133,8 @@ fun MainScreen(
     val seriesEnabled by settings.seriesEnabled.collectAsState()
     val visibleTabs = remember(liveEnabled, moviesEnabled, seriesEnabled) {
         buildList {
-            // LOVIX VOD-only mode: always show Movies and Favorites tabs
+            // LOVIX VOD-only mode: only Movies tab (favorites toggle is in the navbar)
             add(Tab.MOVIES)
-            add(Tab.FAVORITES)
             // if (liveEnabled) add(Tab.LIVE)
             // if (seriesEnabled) add(Tab.SHOWS)
             // add(Tab.RECORDINGS)  // Hidden for LOVIX VOD-only
@@ -230,24 +227,11 @@ fun MainScreen(
                             hasSources = hasSources,
                             isSyncing = isSyncing,
                             onOpenPerson = { personName = it },
-                            onTagClick = { moviesViewModel.selectTag(it) },
+                            onTagClick = { tag -> moviesViewModel.selectTag(tag) },
                             favoritesOnly = false,
                             viewModel = moviesViewModel,
                         )
                     }
-                }
-                Tab.FAVORITES -> {
-                    val favViewModel: VodViewModel = viewModel()
-                    MoviesScreen(
-                        onOpenMovie = onOpenMovie,
-                        onResume = onResume,
-                        onOpenSearch = onOpenSearch,
-                        hasSources = hasSources,
-                        isSyncing = isSyncing,
-                        onOpenPerson = { personName = it },
-                        favoritesOnly = true,
-                        viewModel = favViewModel,
-                    )
                 }
             }
         }

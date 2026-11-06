@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.27
+
+- **Tag filter fixed** — searching for "blonde" or "threesome" now correctly filters all matching films with proper poster thumbnails.
+- **Favorites tab removed from sidebar** — redundant Favorites tab removed from sidebar navigation; favorites toggle is now only in the navbar.
+- **Cast images consolidated** — all cast/actor circular images are displayed in one consolidated row after the tags section.
+- **Active tag highlighting** — selected tag is highlighted in orange with a clear filter button to reset.
+
 ## 1.0.26
 
 - **Version bump** — new release to trigger updated APK build via GitHub Actions.

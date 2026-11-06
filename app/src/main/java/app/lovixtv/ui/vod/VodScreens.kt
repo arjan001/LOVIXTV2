@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -30,9 +31,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.input.key.Key
@@ -72,6 +82,8 @@ import app.lovixtv.ui.VodViewModel
 import app.lovixtv.ui.channels.OnScreenKeyboard
 import coil.compose.AsyncImage
 
+private val ORANGE_ACTIVE = Color(0xFFFFA500)
+
 /**
  * Movies: a modern, row-based home — Continue Watching, Recommended, Recently added and a row per
  * genre, each a horizontally-scrolling shelf of poster cards. A category chip strip along the top
@@ -96,18 +108,53 @@ fun MoviesScreen(
     val genreRows by viewModel.movieGenreRows.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
     
+    // Search query state for live filtering
+    var searchQuery by remember { mutableStateOf("") }
+    
+    // Gender filter state
+    var genderFilter by remember { mutableStateOf<String?>(null) }
+    
+    // Covers/stills toggle state
+    var showCovers by remember { mutableStateOf(true) }
+    
     // Filter movies by selected tag — searches genre, cast, plot, and name
     val movies by viewModel.movies.collectAsState()
-    val filteredMovies = remember(selectedTag, movies) {
+    val filteredMovies = remember(selectedTag, movies, searchQuery, genderFilter) {
         val tag = selectedTag
-        if (tag == null) movies
-        else movies.filter { movie ->
+        val query = searchQuery.trim().lowercase()
+        var result = movies
+        
+        // Apply tag filter
+        if (tag != null) {
             val tagLower = tag.lowercase()
-            movie.genre?.contains(tagLower, ignoreCase = true) == true ||
-            movie.cast?.contains(tagLower, ignoreCase = true) == true ||
-            movie.plot?.contains(tagLower, ignoreCase = true) == true ||
-            movie.name?.contains(tagLower, ignoreCase = true) == true
+            result = result.filter { movie ->
+                movie.genre?.contains(tagLower, ignoreCase = true) == true ||
+                movie.cast?.contains(tagLower, ignoreCase = true) == true ||
+                movie.plot?.contains(tagLower, ignoreCase = true) == true ||
+                movie.name?.contains(tagLower, ignoreCase = true) == true
+            }
         }
+        
+        // Apply search query filter
+        if (query.isNotEmpty()) {
+            result = result.filter { movie ->
+                movie.name?.contains(query, ignoreCase = true) == true ||
+                movie.cast?.contains(query, ignoreCase = true) == true ||
+                movie.genre?.contains(query, ignoreCase = true) == true ||
+                movie.plot?.contains(query, ignoreCase = true) == true
+            }
+        }
+        
+        // Apply gender filter
+        if (genderFilter != null) {
+            val gender = genderFilter!!
+            result = result.filter { movie ->
+                movie.cast?.contains(gender, ignoreCase = true) == true ||
+                movie.genre?.contains(gender, ignoreCase = true) == true
+            }
+        }
+        
+        result
     }
     
     // Filter for favourites only
@@ -125,8 +172,48 @@ fun MoviesScreen(
     val tags by viewModel.tags.collectAsState()
 
     // Cast to concrete types to avoid ambiguity
-    val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
-    val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
+    val allCastPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
+    val allCastTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
+
+    // When a tag is selected, only show tags that appear in the filtered movies (related tags)
+    val relatedTags = remember(selectedTag, allCastTags, movies) {
+        if (selectedTag == null) allCastTags
+        else {
+            // Get the filtered movies for this tag
+            val tagLower = selectedTag!!.lowercase()
+            val tagMovies = movies.filter { movie ->
+                movie.genre?.contains(tagLower, ignoreCase = true) == true ||
+                movie.cast?.contains(tagLower, ignoreCase = true) == true ||
+                movie.plot?.contains(tagLower, ignoreCase = true) == true ||
+                movie.name?.contains(tagLower, ignoreCase = true) == true
+            }
+            // Collect all tags from these movies
+            val tagCounts = mutableMapOf<String, Int>()
+            for (movie in tagMovies) {
+                movie.genre?.split(",")?.forEach { g ->
+                    val trimmed = g.trim()
+                    if (trimmed.isNotBlank()) tagCounts[trimmed] = tagCounts.getOrDefault(trimmed, 0) + 1
+                }
+                movie.cast?.split(",")?.forEach { c ->
+                    val trimmed = c.trim()
+                    if (trimmed.isNotBlank()) tagCounts[trimmed] = tagCounts.getOrDefault(trimmed, 0) + 1
+                }
+            }
+            // Filter to only tags that have matches, sorted by count
+            allCastTags.filter { tag ->
+                tagCounts.containsKey(tag.name)
+            }.map { tag ->
+                Tag(tag.name, tagCounts.getOrDefault(tag.name, tag.count))
+            }.sortedByDescending { it.count }
+        }
+    }
+
+    // Filter cast people based on search query
+    val filteredCastPeople = remember(searchQuery, allCastPeople) {
+        val query = searchQuery.trim().lowercase()
+        if (query.isEmpty()) allCastPeople
+        else allCastPeople.filter { it.name.contains(query, ignoreCase = true) }
+    }
 
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed
     // home rows (recommended, by-genre) on open too — cheap, and covers a library already on disk.
@@ -142,7 +229,23 @@ fun MoviesScreen(
         SearchAffordance(
             onOpenSearch = onOpenSearch,
             viewModel = viewModel,
-            onNavigateToMovie = { movie -> onOpenMovie(movie) }
+            onNavigateToMovie = { movie -> onOpenMovie(movie) },
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
+            allCastPeople = allCastPeople,
+            filteredCastPeople = filteredCastPeople,
+            displayMovies = displayMovies,
+            onOpenPerson = onOpenPerson,
+            onOpenMovie = onOpenMovie,
+        )
+        // Navbar controls: gender dropdown, covers/stills, reload, favorites
+        NavbarControls(
+            genderFilter = genderFilter,
+            onGenderFilterChange = { genderFilter = it },
+            showCovers = showCovers,
+            onShowCoversChange = { showCovers = it },
+            onRefresh = { viewModel.refreshVod() },
+            favoritesOnly = favoritesOnly,
         )
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
@@ -153,37 +256,42 @@ fun MoviesScreen(
                 onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        // Tags shelf - show only actual tag data, no label
-        if (castTags.isNotEmpty()) TagsShelf(tags = castTags, onTagClick = onTagClick)
-        // Cast shelf - show only actual cast data, no label
-        if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
+        // Tags shelf with selected tag highlight and clear filter
+        if (relatedTags.isNotEmpty()) {
+            TagsShelf(
+                tags = relatedTags,
+                selectedTag = selectedTag,
+                onTagClick = { tag ->
+                    if (tag == selectedTag) {
+                        viewModel.selectTag(null) // clear filter
+                    } else {
+                        onTagClick(tag)
+                        viewModel.selectTag(tag)
+                    }
+                },
+                onClearFilter = { viewModel.selectTag(null) }
+            )
+        }
+        // Cast shelf - consolidated cast images in one line
+        if (filteredCastPeople.isNotEmpty()) {
+            CastShelf(people = filteredCastPeople, onOpenPerson = onOpenPerson)
+        }
         // Weighted so the shelves fill the space under the fixed search + chips header
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                selectedTag != null -> MovieCategoryGrid(displayMovies, viewModel, onOpenMovie)
+                displayMovies.isEmpty() && (selectedTag != null || searchQuery.isNotEmpty()) -> {
+                    // Show empty state for filtered results
+                    EmptyVod(
+                        stringResource(R.string.vod_no_movies),
+                        if (selectedTag != null) "No movies with tag: $selectedTag"
+                        else "No movies match your search"
+                    )
+                }
                 !hasContent -> when {
                     vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
                 }
-                favoritesOnly || showFavouritesOnly -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    gridItems(displayMovies, key = { it.id }) { movie ->
-                        PosterCard(
-                            title = movie.displayTitle,
-                            posterUrl = movie.posterUrl,
-                            subtitle = movie.year?.toString(),
-                            rating = movie.rating,
-                            onClick = { onOpenMovie(movie) },
-                        )
-                    }
-                }
-                // Curated home: Continue Watching section above the grid
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
                     contentPadding = PaddingValues(16.dp),
@@ -191,11 +299,11 @@ fun MoviesScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Section 1: Continue Watching (full-width horizontal carousel at top)
-                    if (resume.isNotEmpty()) item {
+                    // Section 1: Continue Watching (only on home, not when filtering)
+                    if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) item {
                         ContinueWatchingRow(resume, onResume)
                     }
-                    // Section 2: All films grid
+                    // Section 2: All films grid (with correct poster URLs)
                     if (displayMovies.isNotEmpty()) {
                         gridItems(displayMovies, key = { it.id }) { movie ->
                             PosterCard(
@@ -237,7 +345,10 @@ fun SeriesScreen(
     val people by viewModel.people.collectAsState()
     val tags by viewModel.tags.collectAsState()
     
-    // Cast to concrete types to avoid ambiguity
+    var searchQuery by remember { mutableStateOf("") }
+    var genderFilter by remember { mutableStateOf<String?>(null) }
+    var showCovers by remember { mutableStateOf(true) }
+
     val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
     val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
 
@@ -250,9 +361,23 @@ fun SeriesScreen(
         SearchAffordance(
             onOpenSearch = onOpenSearch,
             viewModel = viewModel,
-            onNavigateToMovie = null
+            onNavigateToMovie = null,
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
+            allCastPeople = castPeople,
+            filteredCastPeople = castPeople,
+            displayMovies = emptyList(),
+            onOpenPerson = onOpenPerson,
+            onOpenMovie = null,
         )
-        // Provider chips only when multiple sources configured
+        NavbarControls(
+            genderFilter = genderFilter,
+            onGenderFilterChange = { genderFilter = it },
+            showCovers = showCovers,
+            onShowCoversChange = { showCovers = it },
+            onRefresh = { viewModel.refreshVod() },
+            favoritesOnly = false,
+        )
         if (sources.size > 1) {
             ProviderChips(
                 sources = sources,
@@ -261,9 +386,9 @@ fun SeriesScreen(
                 onSelectSource = { id -> viewModel.selectVodSource(id) },
             )
         }
-        // Tags shelf - show only actual tag data, no label
-        if (castTags.isNotEmpty()) TagsShelf(tags = castTags, onTagClick = onTagClick)
-        // Cast shelf - show only actual cast data, no label
+        if (castTags.isNotEmpty()) {
+            TagsShelf(tags = castTags, selectedTag = null, onTagClick = onTagClick, onClearFilter = {})
+        }
         if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
@@ -272,11 +397,8 @@ fun SeriesScreen(
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
                 }
-                // Curated home: Continue Watching section above the grid
                 else -> LazyColumn(Modifier.fillMaxSize()) {
-                    // Section 1: Continue Watching (full-width horizontal carousel at top)
                     if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
-                    // Section 2: All series adaptive grid
                     if (categorySeries.isNotEmpty()) {
                         item {
                             LazyVerticalGrid(
@@ -687,57 +809,56 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
 // ---- Search / loading / empty ------------------------------------------------------------------
 
 /**
- * Modern inline search bar with autocomplete and on-screen QWERTY keyboard at the bottom.
- * When focused, the keyboard appears at the bottom of the screen and autocomplete suggestions
- * appear below the search bar. Connected to the ViewModel for live movie/series search results.
- * Supports Enter key to navigate to first result and suggestion click to navigate directly.
+ * Modern inline search bar with live filtering for movies and cast/actors.
+ * As the user types, both movie covers and cast circles are filtered in real-time.
  */
 @Composable
 private fun SearchAffordance(
     onOpenSearch: () -> Unit,
     viewModel: VodViewModel,
     onNavigateToMovie: ((Movie) -> Unit)? = null,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    allCastPeople: List<Person> = emptyList(),
+    filteredCastPeople: List<Person> = emptyList(),
+    displayMovies: List<Movie> = emptyList(),
+    onOpenPerson: (String) -> Unit = {},
+    onOpenMovie: ((Movie) -> Unit)? = null,
 ) {
-    var query by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
     val movieResults by viewModel.movieResults.collectAsState()
     val seriesResults by viewModel.seriesResults.collectAsState()
     val tags by viewModel.tags.collectAsState()
     val people by viewModel.people.collectAsState()
     
-    // Autocomplete suggestions: top 5 matching movie titles
-    val suggestions = remember(query, movieResults) {
-        if (query.length >= 2) {
+    val suggestions = remember(searchQuery, movieResults) {
+        if (searchQuery.length >= 2) {
             movieResults.take(5).map { it.displayTitle }
         } else emptyList()
     }
     
-    // Filtered tags matching query
-    val filteredTags = remember(query, tags) {
+    val filteredTags = remember(searchQuery, tags) {
         val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
-        if (query.length >= 2) {
-            castTags.filter { it.name.contains(query, ignoreCase = true) }.take(5)
+        if (searchQuery.length >= 2) {
+            castTags.filter { it.name.contains(searchQuery, ignoreCase = true) }.take(5)
         } else emptyList()
     }
     
-    // Filtered actors matching query
-    val filteredPeople = remember(query, people) {
+    val filteredPeople = remember(searchQuery, people) {
         val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
-        if (query.length >= 2) {
-            castPeople.filter { it.name.contains(query, ignoreCase = true) }.take(5)
+        if (searchQuery.length >= 2) {
+            castPeople.filter { it.name.contains(searchQuery, ignoreCase = true) }.take(5)
         } else emptyList()
     }
     
-    // Update search query in ViewModel
-    LaunchedEffect(query) {
-        viewModel.setVodSearchQuery(query)
+    LaunchedEffect(searchQuery) {
+        viewModel.setVodSearchQuery(searchQuery)
     }
     
-    // Navigate to first movie result on Enter
     val navigateToFirst = {
         if (movieResults.isNotEmpty() && onNavigateToMovie != null) {
             onNavigateToMovie(movieResults.first())
-            query = ""
+            onSearchQueryChange("")
             searching = false
             viewModel.setVodSearchQuery("")
         }
@@ -776,16 +897,15 @@ private fun SearchAffordance(
             Spacer(Modifier.width(12.dp))
             
             if (searching) {
-                // Active text input field
                 BasicTextField(
-                    value = query,
-                    onValueChange = { query = it },
+                    value = searchQuery,
+                    onValueChange = { onSearchQueryChange(it) },
                     textStyle = MaterialTheme.typography.titleMedium.copy(
                         color = MaterialTheme.colorScheme.onPrimary
                     ),
                     modifier = Modifier.weight(1f),
                     decorationBox = { innerTextField ->
-                        if (query.isEmpty()) {
+                        if (searchQuery.isEmpty()) {
                             Text(
                                 stringResource(R.string.vod_search_hint),
                                 style = MaterialTheme.typography.titleMedium,
@@ -796,16 +916,14 @@ private fun SearchAffordance(
                     },
                 )
                 Spacer(Modifier.width(8.dp))
-                // Done button to exit search mode
                 OutlinedButton(onClick = {
-                    query = ""
+                    onSearchQueryChange("")
                     searching = false
                     viewModel.setVodSearchQuery("")
                 }) {
                     Text(stringResource(R.string.common_done), color = MaterialTheme.colorScheme.onPrimary)
                 }
             } else {
-                // Inactive state - shows hint text
                 Text(
                     stringResource(R.string.vod_search_hint),
                     style = MaterialTheme.typography.titleMedium,
@@ -815,7 +933,51 @@ private fun SearchAffordance(
             }
         }
         
-        // Autocomplete suggestions dropdown
+        // Live filtered results section - shows when there's a search query
+        if (searchQuery.isNotEmpty() && (filteredCastPeople.isNotEmpty() || displayMovies.isNotEmpty() || filteredPeople.isNotEmpty() || filteredTags.isNotEmpty())) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                // Live filtered cast circles
+                if (filteredCastPeople.isNotEmpty()) {
+                    Text(
+                        "Actors (${filteredCastPeople.size})",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(filteredCastPeople.take(10), key = { it.id }) { person ->
+                            CastCircleSmall(person, onOpenPerson)
+                        }
+                    }
+                }
+                // Live filtered movies
+                if (displayMovies.isNotEmpty() && searchQuery.isNotEmpty()) {
+                    Text(
+                        "Movies (${displayMovies.size})",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp, start = 4.dp)
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(displayMovies.take(10), key = { it.id }) { movie ->
+                            MiniPosterCard(movie, onOpenMovie ?: {})
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Autocomplete suggestions dropdown (when searching mode is active)
         if (searching && (suggestions.isNotEmpty() || filteredTags.isNotEmpty() || filteredPeople.isNotEmpty())) {
             Column(
                 Modifier
@@ -825,7 +987,6 @@ private fun SearchAffordance(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(8.dp)
             ) {
-                // Movie suggestions
                 suggestions.forEach { suggestion ->
                     Text(
                         suggestion,
@@ -834,11 +995,10 @@ private fun SearchAffordance(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                // Navigate to the first movie matching this suggestion
                                 val movie = movieResults.find { it.displayTitle == suggestion }
                                 if (movie != null && onNavigateToMovie != null) {
                                     onNavigateToMovie(movie)
-                                    query = ""
+                                    onSearchQueryChange("")
                                     searching = false
                                     viewModel.setVodSearchQuery("")
                                 }
@@ -846,7 +1006,6 @@ private fun SearchAffordance(
                             .padding(vertical = 6.dp, horizontal = 12.dp)
                     )
                 }
-                // Tag suggestions
                 if (filteredTags.isNotEmpty()) {
                     Text(
                         "Tags",
@@ -862,14 +1021,13 @@ private fun SearchAffordance(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    query = tag.name
+                                    onSearchQueryChange(tag.name)
                                     viewModel.setVodSearchQuery(tag.name)
                                 }
                                 .padding(vertical = 6.dp, horizontal = 12.dp)
                         )
                     }
                 }
-                // Actor suggestions
                 if (filteredPeople.isNotEmpty()) {
                     Text(
                         "Actors",
@@ -884,7 +1042,7 @@ private fun SearchAffordance(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { query = person.name }
+                                .clickable { onSearchQueryChange(person.name) }
                                 .padding(vertical = 6.dp, horizontal = 12.dp)
                         )
                     }
@@ -892,15 +1050,202 @@ private fun SearchAffordance(
             }
         }
         
-        // On-screen keyboard at the bottom when searching
         if (searching) {
             Spacer(Modifier.weight(1f))
             OnScreenKeyboard(
-                onKey = { if (query.length < 40) query += it },
-                onSpace = { if (query.length < 40) query += " " },
-                onBackspace = { query = query.dropLast(1) },
-                onClear = { query = "" },
+                onKey = { if (searchQuery.length < 40) onSearchQueryChange(searchQuery + it) },
+                onSpace = { if (searchQuery.length < 40) onSearchQueryChange(searchQuery + " ") },
+                onBackspace = { onSearchQueryChange(searchQuery.dropLast(1)) },
+                onClear = { onSearchQueryChange("") },
                 onEnter = { navigateToFirst() },
+            )
+        }
+    }
+}
+
+/** Small circular cast image for live search results */
+@Composable
+private fun CastCircleSmall(person: Person, onOpenPerson: (String) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val circleShape = CircleShape
+    Column(
+        Modifier
+            .width(60.dp)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable { onOpenPerson(person.name) }
+            .padding(2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .size(60.dp)
+                .clip(circleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, circleShape)
+                    else Modifier,
+                ),
+        ) {
+            if (person.imageUrl != null) {
+                AsyncImage(
+                    model = person.imageUrl,
+                    contentDescription = person.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(circleShape),
+                )
+            } else {
+                Text(
+                    person.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+        }
+        Text(
+            person.name,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+    }
+}
+
+/** Mini poster card for live search results */
+@Composable
+private fun MiniPosterCard(movie: Movie, onOpenMovie: (Movie) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .width(100.dp)
+            .onFocusChanged { focused = it.isFocused }
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onOpenMovie(movie) }
+            .padding(2.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp))
+                    else Modifier,
+                ),
+        ) {
+            AsyncImage(
+                model = movie.posterUrl,
+                contentDescription = movie.displayTitle,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        Text(
+            movie.displayTitle,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+    }
+}
+
+/**
+ * Navbar controls row: gender dropdown, covers/stills dropdown, reload button, favorites toggle.
+ */
+@Composable
+private fun NavbarControls(
+    genderFilter: String?,
+    onGenderFilterChange: (String?) -> Unit,
+    showCovers: Boolean,
+    onShowCoversChange: (Boolean) -> Unit,
+    onRefresh: () -> Unit,
+    favoritesOnly: Boolean,
+) {
+    var genderExpanded by remember { mutableStateOf(false) }
+    var viewExpanded by remember { mutableStateOf(false) }
+    
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Gender dropdown
+        Box {
+            Column {
+                OutlinedButton(
+                    onClick = { genderExpanded = true },
+                    modifier = Modifier.height(32.dp),
+                ) {
+                    Text(
+                        if (genderFilter != null) "Gender: $genderFilter" else "Gender",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.widthIn(max = 120.dp),
+                    )
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+                DropdownMenu(
+                    expanded = genderExpanded,
+                    onDismissRequest = { genderExpanded = false },
+                ) {
+                    DropdownMenuItem(text = { Text("All") }, onClick = { onGenderFilterChange(null); genderExpanded = false })
+                    DropdownMenuItem(text = { Text("Straight") }, onClick = { onGenderFilterChange("Straight"); genderExpanded = false })
+                    DropdownMenuItem(text = { Text("Bi") }, onClick = { onGenderFilterChange("Bi"); genderExpanded = false })
+                    DropdownMenuItem(text = { Text("Gay") }, onClick = { onGenderFilterChange("Gay"); genderExpanded = false })
+                    DropdownMenuItem(text = { Text("Trans") }, onClick = { onGenderFilterChange("Trans"); genderExpanded = false })
+                }
+            }
+        }
+        
+        // Covers/Stills dropdown
+        Box {
+            Column {
+                OutlinedButton(
+                    onClick = { viewExpanded = true },
+                    modifier = Modifier.height(32.dp),
+                ) {
+                    Text(
+                        if (showCovers) "Covers" else "Stills",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+                DropdownMenu(
+                    expanded = viewExpanded,
+                    onDismissRequest = { viewExpanded = false },
+                ) {
+                    DropdownMenuItem(text = { Text("Covers") }, onClick = { onShowCoversChange(true); viewExpanded = false })
+                    DropdownMenuItem(text = { Text("Stills") }, onClick = { onShowCoversChange(false); viewExpanded = false })
+                }
+            }
+        }
+        
+        Spacer(Modifier.weight(1f))
+        
+        // Reload button
+        IconButton(
+            onClick = onRefresh,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(Icons.Filled.Refresh, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
+        }
+        
+        // Favorites button
+        IconButton(
+            onClick = { /* handled by tab */ },
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                if (favoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = "Favorites",
+                modifier = Modifier.size(20.dp),
+                tint = if (favoritesOnly) Color.Red else MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -1020,25 +1365,56 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 // ---- Phase 2: Tags Shelf -----------------------------------------------------------------------
 
 @Composable
-private fun TagsShelf(tags: List<Tag>, onTagClick: (String) -> Unit = {}) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        items(tags, key = { it.name }) { tag ->
-            TagChip(tag, onTagClick)
+private fun TagsShelf(
+    tags: List<Tag>,
+    selectedTag: String? = null,
+    onTagClick: (String) -> Unit = {},
+    onClearFilter: () -> Unit = {},
+) {
+    Column(Modifier.fillMaxWidth()) {
+        // Show clear filter button when a tag is selected
+        if (selectedTag != null) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Filter: $selectedTag",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ORANGE_ACTIVE,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = onClearFilter) {
+                    Icon(Icons.Filled.Clear, contentDescription = "Clear", modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Clear", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            items(tags, key = { it.name }) { tag ->
+                TagChip(tag, selectedTag == tag.name, onTagClick)
+            }
         }
     }
 }
 
 @Composable
-private fun TagChip(tag: Tag, onTagClick: (String) -> Unit = {}) {
+private fun TagChip(tag: Tag, selected: Boolean = false, onTagClick: (String) -> Unit = {}) {
     var focused by remember { mutableStateOf(false) }
     val bg = when {
+        selected -> ORANGE_ACTIVE
         focused -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val fg = when {
+        selected -> Color.White
         focused -> MaterialTheme.colorScheme.onPrimary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -1047,6 +1423,10 @@ private fun TagChip(tag: Tag, onTagClick: (String) -> Unit = {}) {
             .onFocusChanged { focused = it.isFocused }
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
+            .then(
+                if (selected) Modifier.border(2.dp, ORANGE_ACTIVE, RoundedCornerShape(16.dp))
+                else Modifier,
+            )
             .clickable(onClick = { onTagClick(tag.name) })
             .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1056,7 +1436,9 @@ private fun TagChip(tag: Tag, onTagClick: (String) -> Unit = {}) {
             style = MaterialTheme.typography.labelSmall,
             color = fg,
             maxLines = 1,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
         )
+        // Only show count if > 0, hide if 0 (no data)
         if (tag.count > 0) {
             Spacer(Modifier.width(4.dp))
             Text(
