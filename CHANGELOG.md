@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.31
+
+- **Subtitles fixed** — playback no longer blocks waiting for external subtitle server; embedded subtitles from the video stream are used automatically by ExoPlayer. External subtitles are still tried in the background when available.
+- **Gender filtering improved** — gender filter now splits genre field by comma/pipe separators and matches case-insensitively, ensuring "Gay", "Lesbian", "Straight", etc. filter correctly.
+- **Cast images fixed** — cast shelf no longer uses movie posters as fake cast photos; only people with real images from the API/TMDB are shown in the default view. Cast names without images show initials avatars.
+
 ## 1.0.30
 
 - **In-app update fixed** — switched to DownloadManager for reliable APK download and installation on Android TV devices.

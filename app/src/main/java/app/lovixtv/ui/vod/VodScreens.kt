@@ -194,12 +194,17 @@ fun MoviesScreen(
             }
         }
         
-        // Apply gender filter
+        // Apply gender filter — check genre field first (primary source), then cast
         if (genderFilter != null) {
             val gender = genderFilter!!
+            val genderLower = gender.lowercase()
             result = result.filter { movie ->
-                movie.cast?.contains(gender, ignoreCase = true) == true ||
-                movie.genre?.contains(gender, ignoreCase = true) == true
+                // Check genre field (e.g. "Gay", "Lesbian", "Straight", "Bisexual", "Trans")
+                movie.genre?.let { g ->
+                    g.split(",", "|").map { it.trim().lowercase() }.any { it == genderLower || it.contains(genderLower) }
+                } == true ||
+                // Fallback: check cast field
+                movie.cast?.contains(gender, ignoreCase = true) == true
             }
         }
         
@@ -253,64 +258,65 @@ fun MoviesScreen(
         }
     }
 
-    // Extract cast people from all movies' cast field - reliable source when API people are empty
-    val castFromMovies = remember(movies) {
+    // Build cast people list: prioritize API people with real images,
+    // then add cast names from movies (without fake movie poster images)
+    val mergedCastPeople = remember(allCastPeople, movies) {
         val nameToPerson = mutableMapOf<String, Person>()
+
+        // 1. Start with API people (they have real person photos from TMDB)
+        for (p in allCastPeople) {
+            val key = p.name.lowercase()
+            if (p.imageUrl != null && p.imageUrl!!.isNotBlank()) {
+                nameToPerson[key] = p
+            } else if (nameToPerson[key] == null) {
+                // Add API person even without image, in case movie cast count is higher
+                nameToPerson[key] = p
+            } else {
+                // Keep existing entry with image
+                nameToPerson[key] = nameToPerson[key]!!.copy(
+                    count = maxOf(nameToPerson[key]!!.count, p.count)
+                )
+            }
+        }
+
+        // 2. Count cast names from movies to update counts, but don't assign movie posters as images
         for (movie in movies) {
             movie.cast?.split(",")?.forEach { c ->
                 val name = c.trim()
-                if (name.isNotBlank() && nameToPerson[name] == null) {
-                    // Generate a creative fallback image URL using movie poster or backdrop
-                    val fallbackImage = movie.posterUrl?.takeIf { it.isNotBlank() }
-                        ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
-                    nameToPerson[name] = Person(
-                        id = name.hashCode().toString(),
-                        name = name,
-                        count = 1,
-                        imageUrl = fallbackImage,
-                        gender = null,
-                    )
-                } else if (nameToPerson[name] != null) {
-                    nameToPerson[name] = nameToPerson[name]!!.copy(
-                        count = nameToPerson[name]!!.count + 1,
-                        imageUrl = nameToPerson[name]!!.imageUrl ?: (
-                            movie.posterUrl?.takeIf { it.isNotBlank() }
-                                ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
-                            )
-                    )
+                if (name.isNotBlank()) {
+                    val key = name.lowercase()
+                    val existing = nameToPerson[key]
+                    if (existing != null) {
+                        // Increment count for existing person (may have real image from API)
+                        nameToPerson[key] = existing.copy(count = existing.count + 1)
+                    } else {
+                        // New cast name from movie with no API image — use initials avatar
+                        nameToPerson[key] = Person(
+                            id = name.hashCode().toString(),
+                            name = name,
+                            count = 1,
+                            imageUrl = null, // No fake movie poster image
+                            gender = null,
+                        )
+                    }
                 }
             }
         }
+
         nameToPerson.values.toList().sortedByDescending { it.count }
     }
 
-    // Merge API people with cast extracted from movies, preferring API images
-    val mergedCastPeople = remember(allCastPeople, castFromMovies) {
-        val map = mutableMapOf<String, Person>()
-        // Start with cast from movies
-        for (p in castFromMovies) {
-            map[p.name.lowercase()] = p
-        }
-        // Override with API people (they have better images)
-        for (p in allCastPeople) {
-            if (p.imageUrl != null && p.imageUrl!!.isNotBlank()) {
-                val key = p.name.lowercase()
-                val existing = map[key]
-                map[key] = if (existing != null) {
-                    p.copy(count = maxOf(p.count, existing.count))
-                } else {
-                    p
-                }
-            }
-        }
-        map.values.toList().sortedByDescending { it.count }
-    }
-
-    // Filter cast people based on search query
+    // Filter cast people based on search query - only show people with images or known names
     val filteredCastPeople = remember(searchQuery, mergedCastPeople) {
         val query = searchQuery.trim().lowercase()
-        if (query.isEmpty()) mergedCastPeople.take(50)
-        else mergedCastPeople.filter { it.name.contains(query, ignoreCase = true) }
+        val people = if (query.isEmpty()) {
+            // For default view, only show people with real images to avoid clutter
+            mergedCastPeople.filter { it.imageUrl != null && it.imageUrl!!.isNotBlank() }.take(50)
+        } else {
+            // For search, show all matching people (even without images)
+            mergedCastPeople.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        people
     }
 
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed

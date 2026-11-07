@@ -230,8 +230,8 @@ fun VodPlayerScreen(
         }
     }
 
-    // Build server subtitle track URLs from the LOVIX subtitle service (port 6970).
-    // Uses the configurable subtitle server URL from AppSettings, defaulting to vpn.istreamix.com.
+    // Subtitle resolution: try external server first, but never block playback.
+    // Embedded subtitles from the video stream are handled automatically by ExoPlayer.
     val subtitleServerHost = graph.settings.subtitleServer.value.ifEmpty { "vpn.istreamix.com" }
     val serverSubtitleTracks = remember(streamUrl, mediaKey, subtitleServerHost) {
         val serverUrl = runCatching {
@@ -239,7 +239,6 @@ fun VodPlayerScreen(
             if (host.startsWith("http://") || host.startsWith("https://")) host else "http://$host"
         }.getOrNull()?.trimEnd('/')
 
-        // Only include the languages the user wants: French, Spanish, Dutch (Belgium)
         val languages = listOf("fr", "es", "nl")
         serverUrl?.let { base ->
             languages.map { code ->
@@ -249,15 +248,9 @@ fun VodPlayerScreen(
         } ?: emptyList()
     }
 
-    // Resolved subtitle tracks: cached file URIs or server URIs (with fallback to stale cache).
-    var resolvedSubtitleTracks by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
-
-    LaunchedEffect(mediaKey, streamUrl, subtitleServerHost) {
-        // Resolve subtitle tracks through cache (uses local files when server is down)
-        val resolved = subtitleCache.resolveTracks(mediaKey, serverSubtitleTracks)
-        resolvedSubtitleTracks = resolved.map { (lang, uri) -> lang to uri.toString() }
-
-        // Start playback with resolved subtitle tracks
+    // Start playback immediately with embedded subtitles (ExoPlayer handles them automatically).
+    // External subtitle tracks are resolved in the background and added if available.
+    LaunchedEffect(mediaKey, streamUrl) {
         val resumeFrom = graph.playbackPositions.get(settings.activeProfileId.value, mediaKey)
             ?.takeIf { !it.isFinished }?.positionMillis ?: 0L
         controller.play(
@@ -267,10 +260,28 @@ fun VodPlayerScreen(
                 userAgent = userAgent,
                 startPositionMillis = resumeFrom,
                 isLive = false,
-                subtitleTracks = resolvedSubtitleTracks,
+                subtitleTracks = emptyList(), // Embedded subtitles handled by ExoPlayer
             ),
             debounce = false,
         )
+
+        // Try to resolve external subtitle tracks in the background (non-blocking)
+        val resolved = subtitleCache.resolveTracks(mediaKey, serverSubtitleTracks)
+        if (resolved.isNotEmpty()) {
+            // Re-play with external subtitle tracks if available
+            controller.play(
+                PlayerController.Request(
+                    url = streamUrl,
+                    title = title,
+                    userAgent = userAgent,
+                    startPositionMillis = controller.player.currentPosition.coerceAtLeast(0),
+                    isLive = false,
+                    subtitleTracks = resolved.map { (lang, uri) -> lang to uri.toString() },
+                ),
+                debounce = false,
+            )
+        }
+
         while (isActive) {
             delay(15_000)
             savePosition()
