@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.30
+
+- **In-app update fixed** — switched to DownloadManager for reliable APK download and installation on Android TV devices.
+- **Navbar button order** — reordered to: Covers → Refresh → Gender → Favorites, matching the design layout.
+- **Navbar button shape** — changed Covers, Refresh, and Gender buttons from rounded pill shape to rectangular (4dp corner radius).
+- **Cast images fixed** — extract cast people directly from all movies' cast field and merge with API data, ensuring cast shelf always populates with names and fallback images.
+- **Poster thumbnail fallback** — movie cards use `backdropUrl` as fallback when `posterUrl` is missing, ensuring correct thumbnails in card view.
+
 ## 1.0.29
 
 - **Navbar button sizing** — reduced gender selector, covers/stills, favorites, and refresh buttons from 36dp to 28dp for more compact design.

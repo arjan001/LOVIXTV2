@@ -253,12 +253,64 @@ fun MoviesScreen(
         }
     }
 
-    // Filter cast people based on search query - only show people with images
-    val filteredCastPeople = remember(searchQuery, allCastPeople) {
-        val withImages = allCastPeople.filter { it.imageUrl != null && it.imageUrl!!.isNotBlank() }
+    // Extract cast people from all movies' cast field - reliable source when API people are empty
+    val castFromMovies = remember(movies) {
+        val nameToPerson = mutableMapOf<String, Person>()
+        for (movie in movies) {
+            movie.cast?.split(",")?.forEach { c ->
+                val name = c.trim()
+                if (name.isNotBlank() && nameToPerson[name] == null) {
+                    // Generate a creative fallback image URL using movie poster or backdrop
+                    val fallbackImage = movie.posterUrl?.takeIf { it.isNotBlank() }
+                        ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
+                    nameToPerson[name] = Person(
+                        id = name.hashCode().toString(),
+                        name = name,
+                        count = 1,
+                        imageUrl = fallbackImage,
+                        gender = null,
+                    )
+                } else if (nameToPerson[name] != null) {
+                    nameToPerson[name] = nameToPerson[name]!!.copy(
+                        count = nameToPerson[name]!!.count + 1,
+                        imageUrl = nameToPerson[name]!!.imageUrl ?: (
+                            movie.posterUrl?.takeIf { it.isNotBlank() }
+                                ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
+                            )
+                    )
+                }
+            }
+        }
+        nameToPerson.values.toList().sortedByDescending { it.count }
+    }
+
+    // Merge API people with cast extracted from movies, preferring API images
+    val mergedCastPeople = remember(allCastPeople, castFromMovies) {
+        val map = mutableMapOf<String, Person>()
+        // Start with cast from movies
+        for (p in castFromMovies) {
+            map[p.name.lowercase()] = p
+        }
+        // Override with API people (they have better images)
+        for (p in allCastPeople) {
+            if (p.imageUrl != null && p.imageUrl!!.isNotBlank()) {
+                val key = p.name.lowercase()
+                val existing = map[key]
+                map[key] = if (existing != null) {
+                    p.copy(count = maxOf(p.count, existing.count))
+                } else {
+                    p
+                }
+            }
+        }
+        map.values.toList().sortedByDescending { it.count }
+    }
+
+    // Filter cast people based on search query
+    val filteredCastPeople = remember(searchQuery, mergedCastPeople) {
         val query = searchQuery.trim().lowercase()
-        if (query.isEmpty()) withImages.take(50)
-        else withImages.filter { it.name.contains(query, ignoreCase = true) }
+        if (query.isEmpty()) mergedCastPeople.take(50)
+        else mergedCastPeople.filter { it.name.contains(query, ignoreCase = true) }
     }
 
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed
@@ -284,7 +336,7 @@ fun MoviesScreen(
             onOpenPerson = onOpenPerson,
             onOpenMovie = onOpenMovie,
         )
-        // Navbar controls: gender dropdown with icons/counts, covers/stills, reload, favorites with badge
+        // Navbar controls: covers/stills, refresh, gender dropdown, favorites with badge
         NavbarControls(
             genderFilter = genderFilter,
             onGenderFilterChange = { genderFilter = it },
@@ -367,8 +419,9 @@ fun MoviesScreen(
                         // Section 2: All films grid (with correct poster URLs)
                         if (displayMovies.isNotEmpty()) {
                             gridItems(displayMovies, key = { it.id }) { movie ->
-                                // Use posterUrl, fallback to backdropUrl if posterUrl is missing
-                                val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() } ?: movie.backdropUrl
+                                // Use posterUrl, fallback to backdropUrl
+                                val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
+                                    ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
                                 PosterCard(
                                     title = movie.displayTitle,
                                     posterUrl = effectivePoster,
@@ -1228,7 +1281,8 @@ private fun MiniPosterCardWithPoster(movie: Movie, posterUrl: String?, onOpenMov
 
 /**
  * Navbar controls row — all on one horizontal scrollable line:
- * gender dropdown with icons & counts, covers/stills selector, favorites heart with badge, refresh.
+ * Covers/Stills → Refresh → Gender dropdown → Favorites heart with badge.
+ * Order matches the design: covers, refresh, gender select, favorites.
  */
 @Composable
 private fun NavbarControls(
@@ -1264,9 +1318,29 @@ private fun NavbarControls(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Gender dropdown with icon and count
+            // 1. Covers/Stills selector (rectangular)
+            OutlinedButton(
+                onClick = { onShowCoversChange(!showCovers) },
+                modifier = Modifier.height(28.dp),
+                shape = RoundedCornerShape(4.dp),
+            ) {
+                Text(
+                    if (showCovers) "Covers" else "Stills",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+
+            // 2. Refresh button (rectangular)
+            OutlinedButton(
+                onClick = onRefresh,
+                modifier = Modifier.height(28.dp),
+                shape = RoundedCornerShape(4.dp),
+            ) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Refresh", modifier = Modifier.size(16.dp))
+            }
+
+            // 3. Gender dropdown with icon and count (rectangular)
             Box {
-            Column {
                 val genreBg = if (genderFilter != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                 val genreFg = if (genderFilter != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -1277,6 +1351,7 @@ private fun NavbarControls(
                         containerColor = genreBg,
                         contentColor = genreFg,
                     ),
+                    shape = RoundedCornerShape(4.dp),
                 ) {
                     // Icon
                     Text(
@@ -1364,68 +1439,44 @@ private fun NavbarControls(
                     )
                 }
             }
-        }
 
-        // Covers/Stills selector
-        Box {
-            Column {
-                OutlinedButton(
-                    onClick = { onShowCoversChange(!showCovers) },
-                    modifier = Modifier.height(28.dp),
+            // 4. Favorites heart button with count badge
+            Box(modifier = Modifier.size(28.dp)) {
+                IconButton(
+                    onClick = { onShowFavoritesOnlyChange(!showFavoritesOnly) },
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    Text(
-                        if (showCovers) "Covers" else "Stills",
-                        style = MaterialTheme.typography.labelSmall,
+                    Icon(
+                        if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Favorites",
+                        modifier = Modifier.size(18.dp),
+                        tint = if (showFavoritesOnly) PINK_ACCENT else MaterialTheme.colorScheme.onSurface,
                     )
                 }
-            }
-        }
-
-        // Favorites heart button with count badge
-        Box(modifier = Modifier.size(28.dp)) {
-            IconButton(
-                onClick = { onShowFavoritesOnlyChange(!showFavoritesOnly) },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Icon(
-                    if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Favorites",
-                    modifier = Modifier.size(18.dp),
-                    tint = if (showFavoritesOnly) PINK_ACCENT else MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            // Count badge
-            if (favoriteCount > 0) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .size(14.dp)
-                        .clip(CircleShape)
-                        .background(PINK_ACCENT),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        if (favoriteCount > 99) "99+" else favoriteCount.toString(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = Color.White,
-                        maxLines = 1,
-                    )
+                // Count badge
+                if (favoriteCount > 0) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(PINK_ACCENT),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (favoriteCount > 99) "99+" else favoriteCount.toString(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = Color.White,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
-        }
-
-        // Reload button
-        IconButton(
-            onClick = onRefresh,
-            modifier = Modifier.size(28.dp),
-        ) {
-            Icon(Icons.Filled.Refresh, contentDescription = "Refresh", modifier = Modifier.size(16.dp))
         }
         // End of controls container (~75% width)
-        }
         // Remaining ~25% space (empty spacer)
         Spacer(Modifier.weight(1f))
     }

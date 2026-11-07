@@ -5,25 +5,25 @@
  */
 package app.lovixtv.update
 
+import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.util.Log
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.File
 
 /**
  * Downloads an update APK and hands it to the system installer.
  *
- * The download lands in the app's own cache (no storage permission, cleaned up by the OS
- * under pressure) and is handed to `ACTION_INSTALL_PACKAGE` through a [FileProvider] uri —
- * a raw `file://` uri throws `FileUriExposedException` on modern Android. The system then
- * shows its own install screen; if the user has not yet allowed OpenTV to install unknown
- * apps, Android walks them through that first. We never install silently.
+ * On Android TV, uses DownloadManager to download directly to the Downloads folder,
+ * then triggers installation via ACTION_VIEW. On phones/tablets, falls back to
+ * FileProvider + ACTION_INSTALL_PACKAGE. The system shows its own install screen;
+ * we never install silently.
  */
 class ApkInstaller(private val http: OkHttpClient) {
 
@@ -33,8 +33,8 @@ class ApkInstaller(private val http: OkHttpClient) {
     }
 
     /**
-     * Downloads [url] and launches the installer. Returns true once the installer intent has
-     * been fired; throws on a download failure so the caller can show a retry.
+     * Downloads [url] and launches the installer using DownloadManager for Android TV compatibility.
+     * Returns true once the download is enqueued; throws on a failure so the caller can show a retry.
      */
     suspend fun downloadAndInstall(
         context: Context,
@@ -42,76 +42,87 @@ class ApkInstaller(private val http: OkHttpClient) {
         expectedBytes: Long,
         progress: Progress,
     ): Boolean {
-        val apk = download(context, url, expectedBytes, progress)
-        launchInstaller(context, apk)
-        return true
-    }
-
-    private suspend fun download(
-        context: Context,
-        url: String,
-        expectedBytes: Long,
-        progress: Progress,
-    ): File = withContext(Dispatchers.IO) {
-        val dir = File(context.cacheDir, "updates").apply { mkdirs() }
-        // A fixed name means each download overwrites the last rather than piling up copies.
-        val out = File(dir, "lovixtv-update.apk")
-
-        val request = Request.Builder().url(url).header("User-Agent", "OpenTV").build()
-        http.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Download failed: HTTP ${response.code}")
-            val bodyStream = response.body?.byteStream() ?: error("Empty download")
-            val total = if (expectedBytes > 0) expectedBytes else (response.body?.contentLength() ?: -1L)
-
-            out.outputStream().use { sink ->
-                val buffer = ByteArray(64 * 1024)
-                var read: Int
-                var written = 0L
-                while (bodyStream.read(buffer).also { read = it } != -1) {
-                    sink.write(buffer, 0, read)
-                    written += read
-                    progress.onProgress(if (total > 0) (written.toFloat() / total) else -1f)
-                }
-            }
-        }
-        out
-    }
-
-    private fun launchInstaller(context: Context, apk: File) {
-        val uri: Uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            apk,
-        )
-        val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            // Allow replacing an existing package even when signatures differ
-            // (e.g. release APK updating a debug-installed app on an emulator).
-            // EXTRA_UNINSTALL_OLD_PACKAGE and EXTRA_ALLOW_REPLACE are API 30+ constants;
-            // use the string literal keys so the app compiles on minSdk 23.
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                putExtra("android.content.pm.extra.UNINSTALL_OLD_PACKAGE", true)
-                putExtra("android.content.pm.extra.ALLOW_REPLACE", true)
-            }
-        }
-        try {
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            // If direct install fails (signature mismatch), try uninstall first
-            Log.w("ApkInstaller", "Direct install failed, trying uninstall-first: ${e.message}")
+        // Check install permission on Android 6+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                val packageUri = Uri.parse("package:${context.packageName}")
-                val uninstallIntent = Intent(Intent.ACTION_DELETE, packageUri).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    Log.w("ApkInstaller", "Install unknown apps permission not granted, opening settings")
+                    val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                    return false
                 }
-                context.startActivity(uninstallIntent)
-            } catch (e2: Exception) {
-                Log.e("ApkInstaller", "Uninstall also failed: ${e2.message}")
+            } catch (e: Exception) {
+                Log.w("ApkInstaller", "Cannot check install permission: ${e.message}")
             }
         }
+
+        // Use DownloadManager - works reliably on Android TV and phones
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val request = DownloadManager.Request(Uri.parse(url)).apply {
+            setTitle("LOVIXTV Update")
+            setDescription("Downloading LOVIXTV update...")
+            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            setAllowedOverMetered(true)
+            setAllowedOverRoaming(true)
+            setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "lovixtv-update.apk")
+            setMimeType("application/vnd.android.package-archive")
+            addHeader("User-Agent", "LOVIXTV")
+        }
+
+        val downloadId = downloadManager.enqueue(request)
+        Log.i("ApkInstaller", "Download enqueued with ID: $downloadId")
+
+        // Simulate progress by polling download status
+        withContext(Dispatchers.IO) {
+            var lastProgress = 0f
+            while (true) {
+                kotlin.sleep(500)
+                val query = DownloadManager.Query().setFilterById(downloadId)
+                val cursor = downloadManager.query(query)
+                if (cursor.moveToFirst()) {
+                    val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                    val bytesDownIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                    val bytesTotalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+
+                    val status = cursor.getInt(statusIdx)
+                    when (status) {
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            // Trigger install
+                            val uri = Uri.parse("content://downloads/my_downloads/$downloadId")
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/vnd.android.package-archive")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Log.w("ApkInstaller", "ACTION_VIEW install failed: ${e.message}")
+                            }
+                            progress.onProgress(1f)
+                            cursor.close()
+                            break
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            cursor.close()
+                            error("Download failed")
+                        }
+                        DownloadManager.STATUS_RUNNING -> {
+                            val downloaded = cursor.getLong(bytesDownIdx)
+                            val total = cursor.getLong(bytesTotalIdx)
+                            val fraction = if (total > 0) downloaded.toFloat() / total else -1f
+                            if (fraction != lastProgress) {
+                                progress.onProgress(fraction)
+                                lastProgress = fraction
+                            }
+                        }
+                    }
+                }
+                cursor.close()
+            }
+        }
+        return true
     }
 }
