@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -74,8 +73,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
 import app.lovixtv.data.model.Movie
@@ -1267,7 +1266,7 @@ private fun NavbarControls(
                 OutlinedButton(
                     onClick = { genderExpanded = true },
                     modifier = Modifier.height(36.dp),
-                    colors = androidx.compose.material3.OutlinedButtonDefaults.colors(
+                    colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = genreBg,
                         contentColor = genreFg,
                     ),
@@ -1379,7 +1378,7 @@ private fun NavbarControls(
         Box(modifier = Modifier.size(36.dp)) {
             IconButton(
                 onClick = { onShowFavoritesOnlyChange(!showFavoritesOnly) },
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 Icon(
                     if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -1401,7 +1400,7 @@ private fun NavbarControls(
                     Text(
                         if (favoriteCount > 99) "99+" else favoriteCount.toString(),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = sp(9f),
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                         ),
                         color = Color.White,
