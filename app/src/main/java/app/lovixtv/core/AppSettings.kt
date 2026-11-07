@@ -397,6 +397,11 @@ class AppSettings private constructor(context: Context) {
         get() = prefs.getString(KEY_LOVIX_TAGS, "") ?: ""
         set(value) { prefs.edit().putString(KEY_LOVIX_TAGS, value).apply() }
 
+    /** Persisted selected tag for the VOD home screen so it survives app restart. */
+    var loenixSelectedTag: String
+        get() = prefs.getString(KEY_LOVIX_SELECTED_TAG, "") ?: ""
+        set(value) { prefs.edit().putString(KEY_LOVIX_SELECTED_TAG, value).apply() }
+
     /**
      * The user's own TMDB API key (v3 auth), stored on-device only exactly like provider
      * credentials, used to fill in artwork/metadata a provider left blank. Blank = the TMDB
@@ -505,6 +510,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_VOD_SYNCED_AT = "vod_synced_at"
         private const val KEY_LOVIX_PEOPLE = "lovix_people"
         private const val KEY_LOVIX_TAGS = "lovix_tags"
+        private const val KEY_LOVIX_SELECTED_TAG = "lovix_selected_tag"
         private const val KEY_TMDB_KEY = "tmdb_api_key"
         private const val DEFAULT_TMDB_KEY = "477f1d521d53d95b7fc3674481225d3c"
         private const val KEY_STREMIO_ADDONS = "stremio_addons"

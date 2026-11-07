@@ -253,11 +253,12 @@ fun MoviesScreen(
         }
     }
 
-    // Filter cast people based on search query
+    // Filter cast people based on search query - only show people with images
     val filteredCastPeople = remember(searchQuery, allCastPeople) {
+        val withImages = allCastPeople.filter { it.imageUrl != null && it.imageUrl!!.isNotBlank() }
         val query = searchQuery.trim().lowercase()
-        if (query.isEmpty()) allCastPeople
-        else allCastPeople.filter { it.name.contains(query, ignoreCase = true) }
+        if (query.isEmpty()) withImages.take(50)
+        else withImages.filter { it.name.contains(query, ignoreCase = true) }
     }
 
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed
@@ -305,9 +306,11 @@ fun MoviesScreen(
             )
         }
         // Tags shelf with selected tag highlight and clear filter
-        if (relatedTags.isNotEmpty()) {
+        // Always show tags shelf when tags exist, even when a tag is selected (so clear button is visible)
+        val tagsToShow = if (allCastTags.isNotEmpty()) allCastTags else relatedTags
+        if (tagsToShow.isNotEmpty()) {
             TagsShelf(
-                tags = relatedTags,
+                tags = tagsToShow,
                 selectedTag = selectedTag,
                 searchQuery = searchQuery,
                 showFavoritesOnly = showFavoritesOnly,
@@ -364,9 +367,11 @@ fun MoviesScreen(
                         // Section 2: All films grid (with correct poster URLs)
                         if (displayMovies.isNotEmpty()) {
                             gridItems(displayMovies, key = { it.id }) { movie ->
+                                // Use posterUrl, fallback to backdropUrl if posterUrl is missing
+                                val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() } ?: movie.backdropUrl
                                 PosterCard(
                                     title = movie.displayTitle,
-                                    posterUrl = movie.posterUrl,
+                                    posterUrl = effectivePoster,
                                     subtitle = movie.year?.toString(),
                                     rating = movie.rating,
                                     onClick = { onOpenMovie(movie) },
@@ -1036,7 +1041,8 @@ private fun SearchAffordance(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(displayMovies.take(10), key = { it.id }) { movie ->
-                            MiniPosterCard(movie, onOpenMovie ?: {})
+                            val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() } ?: movie.backdropUrl
+                            MiniPosterCardWithPoster(movie, effectivePoster, onOpenMovie ?: {})
                         }
                     }
                 }
@@ -1179,9 +1185,9 @@ private fun CastCircleSmall(person: Person, onOpenPerson: (String) -> Unit) {
     }
 }
 
-/** Mini poster card for live search results */
+/** Mini poster card for live search results with explicit poster URL */
 @Composable
-private fun MiniPosterCard(movie: Movie, onOpenMovie: (Movie) -> Unit) {
+private fun MiniPosterCardWithPoster(movie: Movie, posterUrl: String?, onOpenMovie: (Movie) -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Column(
         Modifier
@@ -1203,7 +1209,7 @@ private fun MiniPosterCard(movie: Movie, onOpenMovie: (Movie) -> Unit) {
                 ),
         ) {
             AsyncImage(
-                model = movie.posterUrl,
+                model = posterUrl,
                 contentDescription = movie.displayTitle,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -1266,7 +1272,7 @@ private fun NavbarControls(
 
                 OutlinedButton(
                     onClick = { genderExpanded = true },
-                    modifier = Modifier.height(36.dp),
+                    modifier = Modifier.height(28.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = genreBg,
                         contentColor = genreFg,
@@ -1365,18 +1371,18 @@ private fun NavbarControls(
             Column {
                 OutlinedButton(
                     onClick = { onShowCoversChange(!showCovers) },
-                    modifier = Modifier.height(36.dp),
+                    modifier = Modifier.height(28.dp),
                 ) {
                     Text(
-                        if (showCovers) "🖼 Covers" else "🎬 Stills",
-                        style = MaterialTheme.typography.labelMedium,
+                        if (showCovers) "Covers" else "Stills",
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
             }
         }
 
         // Favorites heart button with count badge
-        Box(modifier = Modifier.size(36.dp)) {
+        Box(modifier = Modifier.size(28.dp)) {
             IconButton(
                 onClick = { onShowFavoritesOnlyChange(!showFavoritesOnly) },
                 modifier = Modifier.fillMaxSize(),
@@ -1384,7 +1390,7 @@ private fun NavbarControls(
                 Icon(
                     if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     contentDescription = "Favorites",
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = if (showFavoritesOnly) PINK_ACCENT else MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -1393,7 +1399,7 @@ private fun NavbarControls(
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
-                        .size(16.dp)
+                        .size(14.dp)
                         .clip(CircleShape)
                         .background(PINK_ACCENT),
                     contentAlignment = Alignment.Center,
@@ -1401,7 +1407,7 @@ private fun NavbarControls(
                     Text(
                         if (favoriteCount > 99) "99+" else favoriteCount.toString(),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
                         ),
                         color = Color.White,
@@ -1414,9 +1420,9 @@ private fun NavbarControls(
         // Reload button
         IconButton(
             onClick = onRefresh,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(28.dp),
         ) {
-            Icon(Icons.Filled.Refresh, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.Refresh, contentDescription = "Refresh", modifier = Modifier.size(16.dp))
         }
         // End of controls container (~75% width)
         }

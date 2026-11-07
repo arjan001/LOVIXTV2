@@ -888,9 +888,19 @@ class VodViewModel(app: Application) : AndroidViewModel(app) {
     
     private val _selectedTag = MutableStateFlow<String?>(null)
     val selectedTag: StateFlow<String?> = _selectedTag.asStateFlow()
-    
+
+    init {
+        // Restore persisted selected tag from settings
+        val persistedTag = settings.loenixSelectedTag
+        if (persistedTag.isNotBlank()) {
+            _selectedTag.value = persistedTag
+        }
+    }
+
     fun selectTag(tagName: String?) {
         _selectedTag.value = tagName
+        // Persist to settings so it survives app restart
+        settings.loenixSelectedTag = tagName ?: ""
     }
 
     /** The (profile, catalogue) the computed rows were last built for — the redundant-reload guard. */

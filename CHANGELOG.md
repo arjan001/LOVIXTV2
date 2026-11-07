@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.29
+
+- **Navbar button sizing** — reduced gender selector, covers/stills, favorites, and refresh buttons from 36dp to 28dp for more compact design.
+- **Navbar button order** — refresh button now appears after favorites button, matching the design layout.
+- **Tags shelf always visible** — tags and clear button now remain visible when a tag is selected, so users can always clear filters.
+- **Poster thumbnail fix** — movie cards now use `backdropUrl` as fallback when `posterUrl` is missing, ensuring correct thumbnails in card view.
+- **Cast images filter** — cast shelf now only displays people with valid image URLs, limited to 50 people.
+- **Selected tag persistence** — selected tag is now saved and restored across app restarts.
+- **Covers/Stills button** — removed emoji icons for cleaner appearance.
+
 ## 1.0.28
 
 - **Navbar redesign** — single horizontal scrollable row with gender dropdown (icons + film counts), covers/stills toggle, heart-shaped favorites button with pink count badge, and refresh button.
