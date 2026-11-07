@@ -14,6 +14,7 @@ import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
@@ -68,7 +69,7 @@ class ApkInstaller(private val http: OkHttpClient) {
             setAllowedOverRoaming(true)
             setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "lovixtv-update.apk")
             setMimeType("application/vnd.android.package-archive")
-            addHeader("User-Agent", "LOVIXTV")
+            addRequestHeader("User-Agent", "LOVIXTV")
         }
 
         val downloadId = downloadManager.enqueue(request)
@@ -78,7 +79,7 @@ class ApkInstaller(private val http: OkHttpClient) {
         withContext(Dispatchers.IO) {
             var lastProgress = 0f
             while (true) {
-                kotlin.sleep(500)
+                delay(500)
                 val query = DownloadManager.Query().setFilterById(downloadId)
                 val cursor = downloadManager.query(query)
                 if (cursor.moveToFirst()) {
