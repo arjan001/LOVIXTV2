@@ -443,7 +443,7 @@ interface MovieDao {
         """
         SELECT * FROM movies 
         WHERE name LIKE '%' || :query || '%' 
-           OR cast LIKE '%' || :query || '%' 
+           OR `cast` LIKE '%' || :query || '%' 
            OR genre LIKE '%' || :query || '%' 
            OR plot LIKE '%' || :query || '%' 
         ORDER BY name LIMIT :limit
@@ -553,7 +553,7 @@ interface SeriesDao {
         """
         SELECT * FROM series 
         WHERE name LIKE '%' || :query || '%' 
-           OR cast LIKE '%' || :query || '%' 
+           OR `cast` LIKE '%' || :query || '%' 
            OR genre LIKE '%' || :query || '%' 
            OR plot LIKE '%' || :query || '%' 
         ORDER BY name LIMIT :limit
