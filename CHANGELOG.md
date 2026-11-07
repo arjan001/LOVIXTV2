@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.28
+
+- **Navbar redesign** — single horizontal scrollable row with gender dropdown (icons + film counts), covers/stills toggle, heart-shaped favorites button with pink count badge, and refresh button.
+- **Genre dropdown menu** — each option shows icon, name, and film count; includes "Favorites" option with pink glow effect.
+- **Favorites toggle** — local state filters movies to favorites only; heart icon changes between ♡/♥ with pink accent when active.
+- **Clear filters** — pill-shaped "Clear all ×" button resets all filters: selected tag, search query, favorites filter, and gender filter.
+- **Covers/Stills aspect ratio** — poster cards switch from 2:3 (portrait) to 16:10 (landscape) with adjusted grid column width.
+- **Multi-field search** — search across name, cast, genre, and plot fields; supports cast name search and genre filtering.
+- **Navbar width** — controls container takes ~75% width, matching design where navbar doesn't cover full width.
+
 ## 1.0.27
 
 - **Tag filter fixed** — searching for "blonde" or "threesome" now correctly filters all matching films with proper poster thumbnails.
