@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -29,6 +30,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -66,10 +69,12 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.OutlinedButton
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
@@ -84,6 +89,19 @@ import app.lovixtv.ui.channels.OnScreenKeyboard
 import coil.compose.AsyncImage
 
 private val ORANGE_ACTIVE = Color(0xFFFFA500)
+private val PINK_ACCENT = Color(0xFFFF6EA8)
+private val PINK_LIGHT = Color(0xFFFF9EC4)
+
+// Gender/orientation options with their display icons (emoji-style unicode for simplicity)
+private val GENRE_OPTIONS = listOf(
+    GenreEntry("Straight", "⚤"),
+    GenreEntry("Bisexual", "◈"),
+    GenreEntry("Gay", "♂"),
+    GenreEntry("Lesbian", "♀"),
+    GenreEntry("Trans", "⚧"),
+)
+
+data class GenreEntry(val name: String, val icon: String)
 
 /**
  * Movies: a modern, row-based home — Continue Watching, Recommended, Recently added and a row per
@@ -112,18 +130,48 @@ fun MoviesScreen(
     // Search query state for live filtering
     var searchQuery by remember { mutableStateOf("") }
     
-    // Gender filter state
+    // Gender/orientation filter state
     var genderFilter by remember { mutableStateOf<String?>(null) }
     
     // Covers/stills toggle state
     var showCovers by remember { mutableStateOf(true) }
     
-    // Filter movies by selected tag — searches genre, cast, plot, and name
+    // Favorites toggle state
+    var showFavoritesOnly by remember { mutableStateOf(false) }
+    
+    // All movies from the view model
     val movies by viewModel.movies.collectAsState()
-    val filteredMovies = remember(selectedTag, movies, searchQuery, genderFilter) {
+    val favoriteMovieIds by viewModel.favoriteMovies.collectAsState()
+    
+    // Compute genre counts from all movies
+    val genreCounts = remember(movies) {
+        val counts = mutableMapOf<String, Int>()
+        for (entry in GENRE_OPTIONS) {
+            counts[entry.name] = 0
+        }
+        for (movie in movies) {
+            val genre = movie.genre ?: continue
+            val genreLower = genre.lowercase()
+            for (entry in GENRE_OPTIONS) {
+                if (genreLower.contains(entry.name.lowercase())) {
+                    counts[entry.name] = counts.getOrDefault(entry.name, 0) + 1
+                }
+            }
+        }
+        counts
+    }
+    
+    // Filter movies by selected tag, search query, gender filter, and favorites
+    val filteredMovies = remember(selectedTag, movies, searchQuery, genderFilter, showFavoritesOnly, favoriteMovieIds) {
         val tag = selectedTag
         val query = searchQuery.trim().lowercase()
+        val favIds = favoriteMovieIds.map { it.id }.toSet()
         var result = movies
+        
+        // Apply favorites filter
+        if (showFavoritesOnly) {
+            result = result.filter { favIds.contains(it.id) }
+        }
         
         // Apply tag filter
         if (tag != null) {
@@ -158,11 +206,7 @@ fun MoviesScreen(
         result
     }
     
-    // Filter for favourites only
-    val displayMovies = remember(showFavouritesOnly, favoritesOnly, filteredMovies) {
-        if (showFavouritesOnly || favoritesOnly) filteredMovies.filter { it.favourite }
-        else filteredMovies
-    }
+    val displayMovies = filteredMovies
     
     val categoryMovies by viewModel.movies.collectAsState()
     val favoriteMovies by viewModel.favoriteMovies.collectAsState()
@@ -239,14 +283,17 @@ fun MoviesScreen(
             onOpenPerson = onOpenPerson,
             onOpenMovie = onOpenMovie,
         )
-        // Navbar controls: gender dropdown, covers/stills, reload, favorites
+        // Navbar controls: gender dropdown with icons/counts, covers/stills, reload, favorites with badge
         NavbarControls(
             genderFilter = genderFilter,
             onGenderFilterChange = { genderFilter = it },
             showCovers = showCovers,
             onShowCoversChange = { showCovers = it },
             onRefresh = { viewModel.refreshVod() },
-            favoritesOnly = favoritesOnly,
+            showFavoritesOnly = showFavoritesOnly,
+            onShowFavoritesOnlyChange = { showFavoritesOnly = it },
+            genreCounts = genreCounts,
+            favoriteCount = favoriteMovies.size,
         )
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
@@ -262,6 +309,8 @@ fun MoviesScreen(
             TagsShelf(
                 tags = relatedTags,
                 selectedTag = selectedTag,
+                searchQuery = searchQuery,
+                showFavoritesOnly = showFavoritesOnly,
                 onTagClick = { tag ->
                     if (tag == selectedTag) {
                         viewModel.selectTag(null) // clear filter
@@ -270,7 +319,12 @@ fun MoviesScreen(
                         viewModel.selectTag(tag)
                     }
                 },
-                onClearFilter = { viewModel.selectTag(null) }
+                onClearFilter = {
+                    viewModel.selectTag(null)
+                    searchQuery = ""
+                    showFavoritesOnly = false
+                    genderFilter = null
+                }
             )
         }
         // Cast shelf - consolidated cast images in one line
@@ -293,27 +347,32 @@ fun MoviesScreen(
                     hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
                     else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
                 }
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    // Section 1: Continue Watching (only on home, not when filtering)
-                    if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) item {
-                        ContinueWatchingRow(resume, onResume)
-                    }
-                    // Section 2: All films grid (with correct poster URLs)
-                    if (displayMovies.isNotEmpty()) {
-                        gridItems(displayMovies, key = { it.id }) { movie ->
-                            PosterCard(
-                                title = movie.displayTitle,
-                                posterUrl = movie.posterUrl,
-                                subtitle = movie.year?.toString(),
-                                rating = movie.rating,
-                                onClick = { onOpenMovie(movie) },
-                            )
+                else -> {
+                    val posterWidth = if (showCovers) POSTER_WIDTH else POSTER_WIDTH_STILL
+                    val posterAspect = if (showCovers) (2f / 3f) else (16f / 10f)
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = posterWidth),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        // Section 1: Continue Watching (only on home, not when filtering)
+                        if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) item {
+                            ContinueWatchingRow(resume, onResume)
+                        }
+                        // Section 2: All films grid (with correct poster URLs)
+                        if (displayMovies.isNotEmpty()) {
+                            gridItems(displayMovies, key = { it.id }) { movie ->
+                                PosterCard(
+                                    title = movie.displayTitle,
+                                    posterUrl = movie.posterUrl,
+                                    subtitle = movie.year?.toString(),
+                                    rating = movie.rating,
+                                    onClick = { onOpenMovie(movie) },
+                                    aspectRatio = posterAspect,
+                                )
+                            }
                         }
                     }
                 }
@@ -345,10 +404,11 @@ fun SeriesScreen(
     val selectedSource by viewModel.selectedVodSource.collectAsState()
     val people by viewModel.people.collectAsState()
     val tags by viewModel.tags.collectAsState()
-    
+
     var searchQuery by remember { mutableStateOf("") }
     var genderFilter by remember { mutableStateOf<String?>(null) }
     var showCovers by remember { mutableStateOf(true) }
+    var showFavoritesOnly by remember { mutableStateOf(false) }
 
     val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
     val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
@@ -377,7 +437,10 @@ fun SeriesScreen(
             showCovers = showCovers,
             onShowCoversChange = { showCovers = it },
             onRefresh = { viewModel.refreshVod() },
-            favoritesOnly = false,
+            showFavoritesOnly = showFavoritesOnly,
+            onShowFavoritesOnlyChange = { showFavoritesOnly = it },
+            genreCounts = emptyMap(),
+            favoriteCount = 0,
         )
         if (sources.size > 1) {
             ProviderChips(
@@ -559,12 +622,14 @@ internal fun PosterCard(
     rating: Double? = null,
     qualityBadge: String? = null,
     progress: Float? = null,
+    aspectRatio: Float = 2f / 3f,
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.06f else 1f, label = "posterScale")
+    val cardWidth = if (aspectRatio > 1f) POSTER_WIDTH_STILL else POSTER_WIDTH
     Column(
         modifier
-            .width(POSTER_WIDTH)
+            .width(cardWidth)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { focused = it.isFocused }
             .clip(RoundedCornerShape(10.dp))
@@ -574,7 +639,7 @@ internal fun PosterCard(
         Box(
             Modifier
                 .fillMaxWidth()
-                .aspectRatio(2f / 3f)
+                .aspectRatio(aspectRatio)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .then(
@@ -1156,7 +1221,8 @@ private fun MiniPosterCard(movie: Movie, onOpenMovie: (Movie) -> Unit) {
 }
 
 /**
- * Navbar controls row: gender dropdown, covers/stills dropdown, reload button, favorites toggle.
+ * Navbar controls row — all on one horizontal scrollable line:
+ * gender dropdown with icons & counts, covers/stills selector, favorites heart with badge, refresh.
  */
 @Composable
 private fun NavbarControls(
@@ -1165,11 +1231,18 @@ private fun NavbarControls(
     showCovers: Boolean,
     onShowCoversChange: (Boolean) -> Unit,
     onRefresh: () -> Unit,
-    favoritesOnly: Boolean,
+    showFavoritesOnly: Boolean,
+    onShowFavoritesOnlyChange: (Boolean) -> Unit,
+    genreCounts: Map<String, Int>,
+    favoriteCount: Int,
 ) {
     var genderExpanded by remember { mutableStateOf(false) }
-    var viewExpanded by remember { mutableStateOf(false) }
-    
+    val scrollState = rememberScrollState()
+    val currentGenre = genderFilter ?: "All"
+    val currentEntry = GENRE_OPTIONS.find { it.name == currentGenre }
+    val currentCount = genreCounts[currentGenre] ?: 0
+
+    // Horizontal scrollable row — all controls on one line, limited to ~75% width
     Row(
         Modifier
             .fillMaxWidth()
@@ -1177,78 +1250,178 @@ private fun NavbarControls(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Gender dropdown
-        Box {
+        // Controls container - takes up ~75% of the width
+        Row(
+            Modifier
+                .weight(3f)
+                .horizontalScroll(scrollState),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Gender dropdown with icon and count
+            Box {
             Column {
+                val genreBg = if (genderFilter != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                val genreFg = if (genderFilter != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+
                 OutlinedButton(
                     onClick = { genderExpanded = true },
-                    modifier = Modifier.height(32.dp),
+                    modifier = Modifier.height(36.dp),
+                    colors = androidx.compose.material3.OutlinedButtonDefaults.colors(
+                        containerColor = genreBg,
+                        contentColor = genreFg,
+                    ),
                 ) {
+                    // Icon
                     Text(
-                        if (genderFilter != null) "Gender: $genderFilter" else "Gender",
+                        currentEntry?.icon ?: "⚤",
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.widthIn(max = 120.dp),
+                        modifier = Modifier.widthIn(min = 16.dp),
                     )
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    // Label
+                    Text(
+                        currentGenre,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (genderFilter != null) FontWeight.Bold else FontWeight.Normal,
+                    )
+                    // Count badge
+                    if (currentCount > 0) {
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "($currentCount)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = genreFg.copy(alpha = 0.7f),
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp))
                 }
                 DropdownMenu(
                     expanded = genderExpanded,
                     onDismissRequest = { genderExpanded = false },
                 ) {
-                    DropdownMenuItem(text = { Text("All") }, onClick = { onGenderFilterChange(null); genderExpanded = false })
-                    DropdownMenuItem(text = { Text("Straight") }, onClick = { onGenderFilterChange("Straight"); genderExpanded = false })
-                    DropdownMenuItem(text = { Text("Bi") }, onClick = { onGenderFilterChange("Bi"); genderExpanded = false })
-                    DropdownMenuItem(text = { Text("Gay") }, onClick = { onGenderFilterChange("Gay"); genderExpanded = false })
-                    DropdownMenuItem(text = { Text("Trans") }, onClick = { onGenderFilterChange("Trans"); genderExpanded = false })
+                    // "All" option
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("All", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "(${genreCounts.values.sum()})",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        },
+                        onClick = { onGenderFilterChange(null); genderExpanded = false },
+                        modifier = if (genderFilter == null) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier,
+                    )
+                    // Genre options with icons and counts
+                    for (entry in GENRE_OPTIONS) {
+                        val count = genreCounts[entry.name] ?: 0
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(entry.icon, modifier = Modifier.widthIn(min = 16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(entry.name, style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "($count)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            },
+                            onClick = { onGenderFilterChange(entry.name); genderExpanded = false },
+                            modifier = if (genderFilter == entry.name) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier,
+                        )
+                    }
+                    // Favorites option with pink glow
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = PINK_ACCENT)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Favorites", style = MaterialTheme.typography.bodyMedium, color = PINK_LIGHT)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "($favoriteCount)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PINK_LIGHT,
+                                )
+                            }
+                        },
+                        onClick = { onShowFavoritesOnlyChange(!showFavoritesOnly); genderExpanded = false },
+                        modifier = if (showFavoritesOnly) Modifier.background(PINK_ACCENT.copy(alpha = 0.15f)) else Modifier,
+                    )
                 }
             }
         }
-        
-        // Covers/Stills dropdown
+
+        // Covers/Stills selector
         Box {
             Column {
                 OutlinedButton(
-                    onClick = { viewExpanded = true },
-                    modifier = Modifier.height(32.dp),
+                    onClick = { onShowCoversChange(!showCovers) },
+                    modifier = Modifier.height(36.dp),
                 ) {
                     Text(
-                        if (showCovers) "Covers" else "Stills",
+                        if (showCovers) "🖼 Covers" else "🎬 Stills",
                         style = MaterialTheme.typography.labelMedium,
                     )
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-                DropdownMenu(
-                    expanded = viewExpanded,
-                    onDismissRequest = { viewExpanded = false },
-                ) {
-                    DropdownMenuItem(text = { Text("Covers") }, onClick = { onShowCoversChange(true); viewExpanded = false })
-                    DropdownMenuItem(text = { Text("Stills") }, onClick = { onShowCoversChange(false); viewExpanded = false })
                 }
             }
         }
-        
-        Spacer(Modifier.weight(1f))
-        
+
+        // Favorites heart button with count badge
+        Box(modifier = Modifier.size(36.dp)) {
+            IconButton(
+                onClick = { onShowFavoritesOnlyChange(!showFavoritesOnly) },
+                modifier = Modifier.matchParentSize(),
+            ) {
+                Icon(
+                    if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = "Favorites",
+                    modifier = Modifier.size(22.dp),
+                    tint = if (showFavoritesOnly) PINK_ACCENT else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            // Count badge
+            if (favoriteCount > 0) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(PINK_ACCENT),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (favoriteCount > 99) "99+" else favoriteCount.toString(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = sp(9f),
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
         // Reload button
         IconButton(
             onClick = onRefresh,
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(36.dp),
         ) {
             Icon(Icons.Filled.Refresh, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
         }
-        
-        // Favorites button
-        IconButton(
-            onClick = { /* handled by tab */ },
-            modifier = Modifier.size(32.dp),
-        ) {
-            Icon(
-                if (favoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                contentDescription = "Favorites",
-                modifier = Modifier.size(20.dp),
-                tint = if (favoritesOnly) Color.Red else MaterialTheme.colorScheme.onSurface,
-            )
+        // End of controls container (~75% width)
         }
+        // Remaining ~25% space (empty spacer)
+        Spacer(Modifier.weight(1f))
     }
 }
 
@@ -1280,8 +1453,10 @@ private fun LoadingVod(message: String) {
 }
 
 /** Poster shelf card width; the grid uses an adaptive min size close to this.
- * Sized for TV screens: ~180 dp gives 4–6 columns on 1080p/4K displays. */
+* Sized for TV screens: ~180 dp gives 4–6 columns on 1080p/4K displays. */
 private val POSTER_WIDTH = 180.dp
+/** Wider card for stills/landscape mode */
+private val POSTER_WIDTH_STILL = 240.dp
 
 /** Rating to one decimal place, locale-independent (the "★" is drawn beside it). */
 internal fun formatRating(rating: Double): String = String.format(java.util.Locale.US, "%.1f", rating)
@@ -1369,38 +1544,61 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
 private fun TagsShelf(
     tags: List<Tag>,
     selectedTag: String? = null,
+    searchQuery: String = "",
+    showFavoritesOnly: Boolean = false,
     onTagClick: (String) -> Unit = {},
     onClearFilter: () -> Unit = {},
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        // Show clear filter button when a tag is selected
-        if (selectedTag != null) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "Filter: $selectedTag",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = ORANGE_ACTIVE,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.width(8.dp))
-                OutlinedButton(onClick = onClearFilter) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear", modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Clear", style = MaterialTheme.typography.labelSmall)
+    val hasAnyFilter = selectedTag != null || searchQuery.isNotBlank() || showFavoritesOnly
+
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        // Favorites tag chip when favorites filter is active
+        if (showFavoritesOnly) {
+            item {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(PINK_ACCENT.copy(alpha = 0.2f))
+                        .border(1.dp, PINK_ACCENT, RoundedCornerShape(16.dp))
+                        .clickable(onClick = onClearFilter)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Favorite, contentDescription = null, modifier = Modifier.size(12.dp), tint = PINK_LIGHT)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Favorites", style = MaterialTheme.typography.labelSmall, color = PINK_LIGHT, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(4.dp))
+                        Text("×", style = MaterialTheme.typography.labelSmall, color = PINK_LIGHT)
+                    }
                 }
             }
         }
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            items(tags, key = { it.name }) { tag ->
-                TagChip(tag, selectedTag == tag.name, onTagClick)
+        // Tag chips
+        items(tags, key = { it.name }) { tag ->
+            TagChip(tag, selectedTag == tag.name, onTagClick)
+        }
+        // Pill-shaped "Clear all" button when any filter is active
+        if (hasAnyFilter) {
+            item {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(PINK_ACCENT.copy(alpha = 0.15f))
+                        .border(1.dp, PINK_ACCENT.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
+                        .clickable(onClick = onClearFilter)
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Clear all ×",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = PINK_LIGHT,
+                    )
+                }
             }
         }
     }

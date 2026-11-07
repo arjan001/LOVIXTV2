@@ -438,7 +438,17 @@ interface MovieDao {
     @Query("SELECT * FROM movies WHERE favourite = 1 ORDER BY name")
     fun observeFavourites(): Flow<List<Movie>>
 
-    @Query("SELECT * FROM movies WHERE name LIKE '%' || :query || '%' ORDER BY name LIMIT :limit")
+    /** Search movies by name, cast, genre, or plot — supports cast name search and genre filtering. */
+    @Query(
+        """
+        SELECT * FROM movies 
+        WHERE name LIKE '%' || :query || '%' 
+           OR cast LIKE '%' || :query || '%' 
+           OR genre LIKE '%' || :query || '%' 
+           OR plot LIKE '%' || :query || '%' 
+        ORDER BY name LIMIT :limit
+        """
+    )
     fun search(query: String, limit: Int = 200): Flow<List<Movie>>
 
     /** Newest-first, for the "Recently Added" home row. Reactive so it fills in as VOD sync lands. */
@@ -538,7 +548,17 @@ interface SeriesDao {
     )
     fun observe(categoryId: String?): Flow<List<Series>>
 
-    @Query("SELECT * FROM series WHERE name LIKE '%' || :query || '%' ORDER BY name LIMIT :limit")
+    /** Search series by name, cast, genre, or plot — supports cast name search and genre filtering. */
+    @Query(
+        """
+        SELECT * FROM series 
+        WHERE name LIKE '%' || :query || '%' 
+           OR cast LIKE '%' || :query || '%' 
+           OR genre LIKE '%' || :query || '%' 
+           OR plot LIKE '%' || :query || '%' 
+        ORDER BY name LIMIT :limit
+        """
+    )
     fun search(query: String, limit: Int = 200): Flow<List<Series>>
 
     /** Newest-first, for the "Recently Added" home row. Reactive so it fills in as VOD sync lands. */
