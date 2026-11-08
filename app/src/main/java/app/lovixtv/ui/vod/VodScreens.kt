@@ -395,14 +395,16 @@ fun MoviesScreen(
         else -> "content"
     }
 
-    // Single LazyVerticalGrid to avoid nesting scrollable containers
+    // Single LazyVerticalGrid with adaptive columns for 5-7 cards per row on TV screens
     LazyVerticalGrid(
-        columns = GridCells.Fixed(1),
+        columns = GridCells.Adaptive(minSize = posterWidth),
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp),
     ) {
         // Search bar
-        item {
+        item(span = { GridItemSpan(maxOrRemaining()) }) {
             SearchAffordance(
                 onOpenSearch = onOpenSearch,
                 viewModel = viewModel,
@@ -417,7 +419,7 @@ fun MoviesScreen(
             )
         }
         // Navbar controls: covers/stills, refresh, gender dropdown, favorites with badge
-        item {
+        item(span = { GridItemSpan(maxOrRemaining()) }) {
             NavbarControls(
                 genderFilter = genderFilter,
                 onGenderFilterChange = { genderFilter = it },
@@ -432,7 +434,7 @@ fun MoviesScreen(
         }
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 ProviderChips(
                     sources = sources,
                     selected = selectedSource,
@@ -443,7 +445,7 @@ fun MoviesScreen(
         }
         // Tags shelf with selected tag highlight and clear filter
         if (tagsToShow.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 TagsShelf(
                     tags = tagsToShow,
                     selectedTag = selectedTag,
@@ -468,34 +470,34 @@ fun MoviesScreen(
         }
         // Cast shelf - consolidated cast images in one line
         if (filteredCastPeople.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 CastShelf(people = filteredCastPeople, onOpenPerson = onOpenPerson)
             }
         }
 
         // Continue Watching in its own separate row (only on home, not when filtering)
         if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 ContinueWatchingRow(resume, onResume)
             }
         }
 
         // Empty/loading states or movie grid
         when (contentState) {
-            "empty_filtered" -> item {
+            "empty_filtered" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 EmptyVod(
                     stringResource(R.string.vod_no_movies),
                     if (selectedTag != null) "No movies with tag: $selectedTag"
                     else "No movies match your search"
                 )
             }
-            "loading" -> item {
+            "loading" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 LoadingVod(stringResource(R.string.vod_loading_movies))
             }
-            "empty_provider" -> item {
+            "empty_provider" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
             }
-            "empty_add" -> item {
+            "empty_add" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
             }
             "content" -> {
@@ -556,14 +558,16 @@ fun SeriesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    // Single LazyVerticalGrid to avoid nesting scrollable containers
+    // Single LazyVerticalGrid with adaptive columns for 5-7 cards per row on TV screens
     LazyVerticalGrid(
-        columns = GridCells.Fixed(1),
+        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp),
     ) {
         // Search bar
-        item {
+        item(span = { GridItemSpan(maxOrRemaining()) }) {
             SearchAffordance(
                 onOpenSearch = onOpenSearch,
                 viewModel = viewModel,
@@ -578,7 +582,7 @@ fun SeriesScreen(
             )
         }
         // Navbar controls
-        item {
+        item(span = { GridItemSpan(maxOrRemaining()) }) {
             NavbarControls(
                 genderFilter = genderFilter,
                 onGenderFilterChange = { genderFilter = it },
@@ -593,7 +597,7 @@ fun SeriesScreen(
         }
         // Provider chips
         if (sources.size > 1) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 ProviderChips(
                     sources = sources,
                     selected = selectedSource,
@@ -604,33 +608,33 @@ fun SeriesScreen(
         }
         // Tags shelf
         if (castTags.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 TagsShelf(tags = castTags, selectedTag = null, onTagClick = onTagClick, onClearFilter = {})
             }
         }
         // Cast shelf
         if (castPeople.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
             }
         }
 
         // Continue Watching in its own separate row
         if (resume.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxOrRemaining()) }) {
                 ContinueWatchingRow(resume, onResume)
             }
         }
 
         // Empty/loading states or series grid
         when {
-            categorySeries.isEmpty() && (vodLoading || isSyncing) -> item {
+            categorySeries.isEmpty() && (vodLoading || isSyncing) -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 LoadingVod(stringResource(R.string.vod_loading_shows))
             }
-            categorySeries.isEmpty() && hasSources -> item {
+            categorySeries.isEmpty() && hasSources -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
             }
-            categorySeries.isEmpty() -> item {
+            categorySeries.isEmpty() -> item(span = { GridItemSpan(maxOrRemaining()) }) {
                 EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
             }
             categorySeries.isNotEmpty() -> {

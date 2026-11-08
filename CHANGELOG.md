@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.36
+
+- **Grid layout fixed** — movie and series cards now display 5–7 per row on TV screens using adaptive grid columns instead of single-column layout. Navbar, tags, and cast shelf span full width above the grid.
+- **Cast shelf restored** — consolidated cast images with names appear below the navbar in both movies and series screens.
+
 ## 1.0.35
 
 - **Crash fix** — fixed `IllegalStateException` caused by nesting `LazyVerticalGrid` inside `LazyColumn`. Both MoviesScreen and SeriesScreen now use a single `LazyVerticalGrid` container to avoid infinite height constraints.
