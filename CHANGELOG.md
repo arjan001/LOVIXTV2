@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.33
+
+- **Build fix** — fixed Kotlin compilation error where `gridItems` was called inside `LazyColumn` scope; wrapped movie and series grids in proper `LazyVerticalGrid` containers.
+- **Cast images improved** — cast shelf now prioritizes real TMDB cast photos from movie `castMembers` over API people list, ensuring correct actor/actress images instead of duplicate thumbnails.
+
 ## 1.0.32
 
 - **Navbar & cast scroll with content** — search bar, navbar controls, tags shelf, and cast images now scroll up with the movie grid instead of staying sticky at the top.

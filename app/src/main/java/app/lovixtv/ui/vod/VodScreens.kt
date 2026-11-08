@@ -78,6 +78,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lovixtv.R
+import app.lovixtv.data.model.CastMember
 import app.lovixtv.data.model.Movie
 import app.lovixtv.data.model.Person
 import app.lovixtv.data.model.Series
@@ -258,28 +259,82 @@ fun MoviesScreen(
         }
     }
 
-    // Build cast people list: prioritize API people with real images,
-    // then add cast names from movies (without fake movie poster images)
+    // Build cast people list: prioritize castMembers from movies (real TMDB images),
+    // then API people, then cast names from movie.cast string
     val mergedCastPeople = remember(allCastPeople, movies) {
         val nameToPerson = mutableMapOf<String, Person>()
 
-        // 1. Start with API people (they have real person photos from TMDB)
-        for (p in allCastPeople) {
-            val key = p.name.lowercase()
-            if (p.imageUrl != null && p.imageUrl!!.isNotBlank()) {
-                nameToPerson[key] = p
-            } else if (nameToPerson[key] == null) {
-                // Add API person even without image, in case movie cast count is higher
-                nameToPerson[key] = p
-            } else {
-                // Keep existing entry with image
-                nameToPerson[key] = nameToPerson[key]!!.copy(
-                    count = maxOf(nameToPerson[key]!!.count, p.count)
-                )
+        // 1. First, extract cast from movie.castMembers (these have real TMDB person images)
+        for (movie in movies) {
+            movie.castMembers?.forEach { cm ->
+                val name = cm.name.trim()
+                if (name.isNotBlank()) {
+                    val key = name.lowercase()
+                    val existing = nameToPerson[key]
+                    if (existing != null) {
+                        // Keep the one with image, increment count
+                        val hasImage = cm.imageUrl != null && cm.imageUrl!!.isNotBlank()
+                        if (hasImage && (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
+                            nameToPerson[key] = Person(
+                                id = name.hashCode().toString(),
+                                name = name,
+                                count = existing.count + 1,
+                                imageUrl = cm.imageUrl,
+                                gender = cm.gender
+                            )
+                        } else {
+                            nameToPerson[key] = existing.copy(count = existing.count + 1)
+                        }
+                    } else {
+                        nameToPerson[key] = Person(
+                            id = name.hashCode().toString(),
+                            name = name,
+                            count = 1,
+                            imageUrl = cm.imageUrl,
+                            gender = cm.gender
+                        )
+                    }
+                }
             }
         }
 
-        // 2. Count cast names from movies to update counts, but don't assign movie posters as images
+        // 2. Merge API people (they may have real person photos from TMDB)
+        for (p in allCastPeople) {
+            val key = p.name.lowercase()
+            val existing = nameToPerson[key]
+            if (existing != null) {
+                // API person already found from castMembers — keep the one with image
+                val apiHasImage = p.imageUrl != null && p.imageUrl!!.isNotBlank()
+                val existingHasImage = existing.imageUrl != null && existing.imageUrl!!.isNotBlank()
+                if (apiHasImage && !existingHasImage) {
+                    nameToPerson[key] = Person(
+                        id = existing.id,
+                        name = existing.name,
+                        count = existing.count,
+                        imageUrl = p.imageUrl,
+                        gender = p.gender ?: existing.gender
+                    )
+                } else if (apiHasImage && existingHasImage) {
+                    // Both have images, keep existing (from castMembers, more likely correct)
+                    nameToPerson[key] = existing.copy(
+                        count = maxOf(existing.count, p.count)
+                    )
+                } else {
+                    // Neither has image or existing has image, keep existing
+                    nameToPerson[key] = existing.copy(
+                        count = maxOf(existing.count, p.count)
+                    )
+                }
+            } else if (p.imageUrl != null && p.imageUrl!!.isNotBlank()) {
+                // New API person with real image
+                nameToPerson[key] = p
+            } else if (nameToPerson[key] == null) {
+                // Add API person even without image
+                nameToPerson[key] = p
+            }
+        }
+
+        // 3. Count cast names from movie.cast string for any remaining names
         for (movie in movies) {
             movie.cast?.split(",")?.forEach { c ->
                 val name = c.trim()
@@ -287,15 +342,13 @@ fun MoviesScreen(
                     val key = name.lowercase()
                     val existing = nameToPerson[key]
                     if (existing != null) {
-                        // Increment count for existing person (may have real image from API)
                         nameToPerson[key] = existing.copy(count = existing.count + 1)
                     } else {
-                        // New cast name from movie with no API image — use initials avatar
                         nameToPerson[key] = Person(
                             id = name.hashCode().toString(),
                             name = name,
                             count = 1,
-                            imageUrl = null, // No fake movie poster image
+                            imageUrl = null,
                             gender = null,
                         )
                     }
@@ -446,18 +499,28 @@ fun MoviesScreen(
             }
             "content" -> {
                 if (displayMovies.isNotEmpty()) {
-                    gridItems(displayMovies, key = { it.id }) { movie ->
-                        // Use posterUrl, fallback to backdropUrl
-                        val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
-                            ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
-                        PosterCard(
-                            title = movie.displayTitle,
-                            posterUrl = effectivePoster,
-                            subtitle = movie.year?.toString(),
-                            rating = movie.rating,
-                            onClick = { onOpenMovie(movie) },
-                            aspectRatio = posterAspect,
-                        )
+                    item {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = posterWidth),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            gridItems(displayMovies, key = { it.id }) { movie ->
+                                // Use posterUrl, fallback to backdropUrl
+                                val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
+                                    ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
+                                PosterCard(
+                                    title = movie.displayTitle,
+                                    posterUrl = effectivePoster,
+                                    subtitle = movie.year?.toString(),
+                                    rating = movie.rating,
+                                    onClick = { onOpenMovie(movie) },
+                                    aspectRatio = posterAspect,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -579,14 +642,24 @@ fun SeriesScreen(
                 EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
             }
             categorySeries.isNotEmpty() -> {
-                gridItems(categorySeries, key = { it.id }) { series ->
-                    PosterCard(
-                        title = series.displayTitle,
-                        posterUrl = series.posterUrl,
-                        subtitle = series.year?.toString(),
-                        rating = series.rating,
-                        onClick = { onOpenSeries(series) },
-                    )
+                item {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        gridItems(categorySeries, key = { it.id }) { series ->
+                            PosterCard(
+                                title = series.displayTitle,
+                                posterUrl = series.posterUrl,
+                                subtitle = series.year?.toString(),
+                                rating = series.rating,
+                                onClick = { onOpenSeries(series) },
+                            )
+                        }
+                    }
                 }
             }
         }
