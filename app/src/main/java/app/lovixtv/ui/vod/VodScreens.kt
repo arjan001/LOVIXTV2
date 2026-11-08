@@ -146,18 +146,41 @@ fun MoviesScreen(
     val movies by viewModel.movies.collectAsState()
     val favoriteMovieIds by viewModel.favoriteMovies.collectAsState()
     
-    // Compute genre counts from all movies
-    val genreCounts = remember(movies) {
+    // Compute genre counts from all movies — check genre, cast, and tags fields
+    val genreCounts = remember(movies, allCastTags) {
         val counts = mutableMapOf<String, Int>()
         for (entry in GENRE_OPTIONS) {
             counts[entry.name] = 0
         }
         for (movie in movies) {
-            val genre = movie.genre ?: continue
-            val genreLower = genre.lowercase()
-            for (entry in GENRE_OPTIONS) {
-                if (genreLower.contains(entry.name.lowercase())) {
-                    counts[entry.name] = counts.getOrDefault(entry.name, 0) + 1
+            // Check genre field (primary source)
+            movie.genre?.let { genre ->
+                val genreLower = genre.lowercase()
+                for (entry in GENRE_OPTIONS) {
+                    val entryLower = entry.name.lowercase()
+                    if (genreLower.contains(entryLower)) {
+                        counts[entry.name] = counts.getOrDefault(entry.name, 0) + 1
+                    }
+                }
+            }
+            // Also check cast field for gender keywords
+            movie.cast?.let { cast ->
+                val castLower = cast.lowercase()
+                for (entry in GENRE_OPTIONS) {
+                    val entryLower = entry.name.lowercase()
+                    if (castLower.contains(entryLower) && (movie.genre?.lowercase()?.contains(entryLower) != true)) {
+                        counts[entry.name] = counts.getOrDefault(entry.name, 0) + 1
+                    }
+                }
+            }
+            // Also check tags for gender keywords
+            movie.tags?.forEach { tag ->
+                val tagLower = tag.lowercase()
+                for (entry in GENRE_OPTIONS) {
+                    val entryLower = entry.name.lowercase()
+                    if (tagLower.contains(entryLower) && (movie.genre?.lowercase()?.contains(entryLower) != true)) {
+                        counts[entry.name] = counts.getOrDefault(entry.name, 0) + 1
+                    }
                 }
             }
         }
@@ -214,7 +237,10 @@ fun MoviesScreen(
         result
     }
     
-    val displayMovies = filteredMovies
+    // Prioritize movies with valid thumbnails (poster or backdrop) so they appear first
+    val displayMovies = filteredMovies.sortedWith(compareByDescending<Movie> { 
+        it.posterUrl?.isNotBlank() == true || it.backdropUrl?.isNotBlank() == true 
+    })
     
     val categoryMovies by viewModel.movies.collectAsState()
     val favoriteMovies by viewModel.favoriteMovies.collectAsState()
@@ -228,45 +254,30 @@ fun MoviesScreen(
     val allCastPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
     val allCastTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
 
-    // When a tag is selected, only show tags that appear in the filtered movies (related tags)
-    val relatedTags = remember(selectedTag, allCastTags, movies) {
-        if (selectedTag == null) allCastTags
-        else {
-            // Get the filtered movies for this tag
-            val tagLower = selectedTag!!.lowercase()
-            val tagMovies = movies.filter { movie ->
-                movie.genre?.contains(tagLower, ignoreCase = true) == true ||
-                movie.cast?.contains(tagLower, ignoreCase = true) == true ||
-                movie.plot?.contains(tagLower, ignoreCase = true) == true ||
-                movie.name?.contains(tagLower, ignoreCase = true) == true
-            }
-            // Collect all tags from these movies
-            val tagCounts = mutableMapOf<String, Int>()
-            for (movie in tagMovies) {
-                movie.genre?.split(",")?.forEach { g ->
-                    val trimmed = g.trim()
-                    if (trimmed.isNotBlank()) tagCounts[trimmed] = tagCounts.getOrDefault(trimmed, 0) + 1
-                }
-                movie.cast?.split(",")?.forEach { c ->
-                    val trimmed = c.trim()
-                    if (trimmed.isNotBlank()) tagCounts[trimmed] = tagCounts.getOrDefault(trimmed, 0) + 1
-                }
-            }
-            // Filter to only tags that have matches, sorted by count
-            allCastTags.filter { tag ->
-                tagCounts.containsKey(tag.name)
-            }.map { tag ->
-                Tag(tag.name, tagCounts.getOrDefault(tag.name, tag.count))
-            }.sortedByDescending { it.count }
-        }
-    }
+    // Always show all tags — tags should persist and be available regardless of selection
+    val relatedTags = allCastTags
 
-    // Build cast people list: prioritize castMembers from movies (real TMDB images),
-    // then API people, then cast names from movie.cast string
+    // Build cast people list: API people with images are the primary source since castMembers
+    // is @Ignore and not persisted to DB. Fall back to castMembers if available, then cast names.
     val mergedCastPeople = remember(allCastPeople, movies) {
         val nameToPerson = mutableMapOf<String, Person>()
 
-        // 1. First, extract cast from movie.castMembers (these have real TMDB person images)
+        // 1. API people are the primary source — they have real TMDB person images from bootstrap
+        for (p in allCastPeople) {
+            val key = p.name.lowercase()
+            if (nameToPerson[key] == null) {
+                nameToPerson[key] = p
+            } else {
+                // Merge: keep the one with image
+                val existing = nameToPerson[key]!!
+                if (p.imageUrl != null && p.imageUrl!!.isNotBlank() && 
+                    (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
+                    nameToPerson[key] = existing.copy(imageUrl = p.imageUrl, gender = p.gender ?: existing.gender)
+                }
+            }
+        }
+
+        // 2. Extract cast from movie.castMembers (if available from fresh API load)
         for (movie in movies) {
             movie.castMembers?.forEach { cm ->
                 val name = cm.name.trim()
@@ -274,15 +285,13 @@ fun MoviesScreen(
                     val key = name.lowercase()
                     val existing = nameToPerson[key]
                     if (existing != null) {
-                        // Keep the one with image, increment count
-                        val hasImage = cm.imageUrl != null && cm.imageUrl!!.isNotBlank()
-                        if (hasImage && (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
-                            nameToPerson[key] = Person(
-                                id = name.hashCode().toString(),
-                                name = name,
-                                count = existing.count + 1,
+                        // Update image if castMember has one and existing doesn't
+                        if (cm.imageUrl != null && cm.imageUrl!!.isNotBlank() &&
+                            (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
+                            nameToPerson[key] = existing.copy(
                                 imageUrl = cm.imageUrl,
-                                gender = cm.gender
+                                gender = cm.gender ?: existing.gender,
+                                count = existing.count + 1
                             )
                         } else {
                             nameToPerson[key] = existing.copy(count = existing.count + 1)
@@ -297,42 +306,6 @@ fun MoviesScreen(
                         )
                     }
                 }
-            }
-        }
-
-        // 2. Merge API people (they may have real person photos from TMDB)
-        for (p in allCastPeople) {
-            val key = p.name.lowercase()
-            val existing = nameToPerson[key]
-            if (existing != null) {
-                // API person already found from castMembers — keep the one with image
-                val apiHasImage = p.imageUrl != null && p.imageUrl!!.isNotBlank()
-                val existingHasImage = existing.imageUrl != null && existing.imageUrl!!.isNotBlank()
-                if (apiHasImage && !existingHasImage) {
-                    nameToPerson[key] = Person(
-                        id = existing.id,
-                        name = existing.name,
-                        count = existing.count,
-                        imageUrl = p.imageUrl,
-                        gender = p.gender ?: existing.gender
-                    )
-                } else if (apiHasImage && existingHasImage) {
-                    // Both have images, keep existing (from castMembers, more likely correct)
-                    nameToPerson[key] = existing.copy(
-                        count = maxOf(existing.count, p.count)
-                    )
-                } else {
-                    // Neither has image or existing has image, keep existing
-                    nameToPerson[key] = existing.copy(
-                        count = maxOf(existing.count, p.count)
-                    )
-                }
-            } else if (p.imageUrl != null && p.imageUrl!!.isNotBlank()) {
-                // New API person with real image
-                nameToPerson[key] = p
-            } else if (nameToPerson[key] == null) {
-                // Add API person even without image
-                nameToPerson[key] = p
             }
         }
 
@@ -1718,6 +1691,26 @@ private fun TagsShelf(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        // Pill-shaped "Clear all" button at the START when any filter is active
+        if (hasAnyFilter) {
+            item {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(PINK_ACCENT.copy(alpha = 0.15f))
+                        .border(1.dp, PINK_ACCENT.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
+                        .clickable(onClick = onClearFilter)
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Clear all ×",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = PINK_LIGHT,
+                    )
+                }
+            }
+        }
         // Favorites tag chip when favorites filter is active
         if (showFavoritesOnly) {
             item {
@@ -1740,29 +1733,9 @@ private fun TagsShelf(
                 }
             }
         }
-        // Tag chips
+        // Tag chips — always show all tags
         items(tags, key = { it.name }) { tag ->
             TagChip(tag, selectedTag == tag.name, onTagClick)
-        }
-        // Pill-shaped "Clear all" button when any filter is active
-        if (hasAnyFilter) {
-            item {
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(PINK_ACCENT.copy(alpha = 0.15f))
-                        .border(1.dp, PINK_ACCENT.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
-                        .clickable(onClick = onClearFilter)
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "Clear all ×",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = PINK_LIGHT,
-                    )
-                }
-            }
         }
     }
 }

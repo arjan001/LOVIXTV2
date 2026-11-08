@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.38
+
+- **Gender counts fixed** — genre filter now counts movies from genre, cast, and tags fields, ensuring accurate film counts for each gender option.
+- **Cast images fixed** — cast people extraction now prioritizes API people with real TMDB images, fixing the issue of missing or duplicate cast photos.
+- **Tags persistence fixed** — all tags now remain visible at all times, even when a tag is selected or the app is refreshed. Tags no longer disappear.
+- **Clear button moved** — "Clear all ×" button now appears at the start of the tags row for easy access.
+- **Thumbnail prioritization** — movies with valid poster or backdrop images now appear first in tag-filtered results, reducing dummy thumbnails.
+
 ## 1.0.37
 
 - **Build fix** — fixed Kotlin compilation errors in `VodScreens.kt`: replaced unsupported `maxOrRemaining()` with `maxLineSpan` for grid item spans, and fixed `LazyVerticalGrid` modifier syntax to use named `modifier` parameter.
