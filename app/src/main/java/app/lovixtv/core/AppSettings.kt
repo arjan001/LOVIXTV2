@@ -473,6 +473,16 @@ class AppSettings private constructor(context: Context) {
         _liveSubtitleLanguage.value = language
     }
 
+    // ---- VOSK model first-launch download ----------------------------------------------------
+
+    /**
+     * Tracks whether the default VOSK English model has been downloaded on first launch.
+     * The model is downloaded in the background so it is ready when the user enables subtitles.
+     */
+    var voskModelDownloaded: Boolean
+        get() = prefs.getBoolean(KEY_VOSK_MODEL_DOWNLOADED, false)
+        set(value) { prefs.edit().putBoolean(KEY_VOSK_MODEL_DOWNLOADED, value).apply() }
+
     companion object {
         private const val KEY_THEME = "theme_mode"
         private const val KEY_CHANNEL_LAYOUT = "channel_layout"
@@ -522,6 +532,7 @@ class AppSettings private constructor(context: Context) {
         private const val DEFAULT_SUBTITLE_SERVER = "vpn.istreamix.com"
         private const val KEY_LIVE_SUBTITLES = "live_subtitles_enabled"
         private const val KEY_LIVE_SUBTITLE_LANG = "live_subtitle_language"
+        private const val KEY_VOSK_MODEL_DOWNLOADED = "vosk_model_downloaded"
 
         @Volatile private var instance: AppSettings? = null
 

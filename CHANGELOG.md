@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.32
+
+- **Navbar & cast scroll with content** — search bar, navbar controls, tags shelf, and cast images now scroll up with the movie grid instead of staying sticky at the top.
+- **Continue Watching separated** — "Continue Watching" now appears in its own dedicated row above the movie grid, no longer interfering with the film cards layout.
+- **VOSK subtitle model auto-download** — the English speech recognition model downloads automatically on first app launch, so live subtitles are ready immediately when the user enables them.
+
 ## 1.0.31
 
 - **Subtitles fixed** — playback no longer blocks waiting for external subtitle server; embedded subtitles from the video stream are used automatically by ExoPlayer. External subtitles are still tried in the background when available.

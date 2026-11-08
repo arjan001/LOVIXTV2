@@ -329,115 +329,135 @@ fun MoviesScreen(
     val hasContent = resume.isNotEmpty() || recentlyAdded.isNotEmpty() ||
         genreRows.isNotEmpty() || displayMovies.isNotEmpty()
 
-    Column(Modifier.fillMaxSize()) {
-        SearchAffordance(
-            onOpenSearch = onOpenSearch,
-            viewModel = viewModel,
-            onNavigateToMovie = { movie -> onOpenMovie(movie) },
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it },
-            allCastPeople = allCastPeople,
-            filteredCastPeople = filteredCastPeople,
-            displayMovies = displayMovies,
-            onOpenPerson = onOpenPerson,
-            onOpenMovie = onOpenMovie,
-        )
-        // Navbar controls: covers/stills, refresh, gender dropdown, favorites with badge
-        NavbarControls(
-            genderFilter = genderFilter,
-            onGenderFilterChange = { genderFilter = it },
-            showCovers = showCovers,
-            onShowCoversChange = { showCovers = it },
-            onRefresh = { viewModel.refreshVod() },
-            showFavoritesOnly = showFavoritesOnly,
-            onShowFavoritesOnlyChange = { showFavoritesOnly = it },
-            genreCounts = genreCounts,
-            favoriteCount = favoriteMovies.size,
-        )
-        // Provider chips only when multiple sources configured
-        if (sources.size > 1) {
-            ProviderChips(
-                sources = sources,
-                selected = selectedSource,
-                onSelectAll = { viewModel.selectVodSource(null) },
-                onSelectSource = { id -> viewModel.selectVodSource(id) },
+    // Determine which content state to show
+    val tagsToShow = if (allCastTags.isNotEmpty()) allCastTags else relatedTags
+    val posterWidth = if (showCovers) POSTER_WIDTH else POSTER_WIDTH_STILL
+    val posterAspect = if (showCovers) (2f / 3f) else (16f / 10f)
+
+    val contentState = when {
+        displayMovies.isEmpty() && (selectedTag != null || searchQuery.isNotEmpty()) -> "empty_filtered"
+        !hasContent && (vodLoading || isSyncing) -> "loading"
+        !hasContent && hasSources -> "empty_provider"
+        !hasContent -> "empty_add"
+        else -> "content"
+    }
+
+    // Single LazyColumn so navbar, tags, cast all scroll up with content (non-sticky)
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 16.dp),
+    ) {
+        // Search bar
+        item {
+            SearchAffordance(
+                onOpenSearch = onOpenSearch,
+                viewModel = viewModel,
+                onNavigateToMovie = { movie -> onOpenMovie(movie) },
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                allCastPeople = allCastPeople,
+                filteredCastPeople = filteredCastPeople,
+                displayMovies = displayMovies,
+                onOpenPerson = onOpenPerson,
+                onOpenMovie = onOpenMovie,
             )
         }
-        // Tags shelf with selected tag highlight and clear filter
-        // Always show tags shelf when tags exist, even when a tag is selected (so clear button is visible)
-        val tagsToShow = if (allCastTags.isNotEmpty()) allCastTags else relatedTags
-        if (tagsToShow.isNotEmpty()) {
-            TagsShelf(
-                tags = tagsToShow,
-                selectedTag = selectedTag,
-                searchQuery = searchQuery,
+        // Navbar controls: covers/stills, refresh, gender dropdown, favorites with badge
+        item {
+            NavbarControls(
+                genderFilter = genderFilter,
+                onGenderFilterChange = { genderFilter = it },
+                showCovers = showCovers,
+                onShowCoversChange = { showCovers = it },
+                onRefresh = { viewModel.refreshVod() },
                 showFavoritesOnly = showFavoritesOnly,
-                onTagClick = { tag ->
-                    if (tag == selectedTag) {
-                        viewModel.selectTag(null) // clear filter
-                    } else {
-                        onTagClick(tag)
-                        viewModel.selectTag(tag)
-                    }
-                },
-                onClearFilter = {
-                    viewModel.selectTag(null)
-                    searchQuery = ""
-                    showFavoritesOnly = false
-                    genderFilter = null
-                }
+                onShowFavoritesOnlyChange = { showFavoritesOnly = it },
+                genreCounts = genreCounts,
+                favoriteCount = favoriteMovies.size,
             )
+        }
+        // Provider chips only when multiple sources configured
+        if (sources.size > 1) {
+            item {
+                ProviderChips(
+                    sources = sources,
+                    selected = selectedSource,
+                    onSelectAll = { viewModel.selectVodSource(null) },
+                    onSelectSource = { id -> viewModel.selectVodSource(id) },
+                )
+            }
+        }
+        // Tags shelf with selected tag highlight and clear filter
+        if (tagsToShow.isNotEmpty()) {
+            item {
+                TagsShelf(
+                    tags = tagsToShow,
+                    selectedTag = selectedTag,
+                    searchQuery = searchQuery,
+                    showFavoritesOnly = showFavoritesOnly,
+                    onTagClick = { tag ->
+                        if (tag == selectedTag) {
+                            viewModel.selectTag(null) // clear filter
+                        } else {
+                            onTagClick(tag)
+                            viewModel.selectTag(tag)
+                        }
+                    },
+                    onClearFilter = {
+                        viewModel.selectTag(null)
+                        searchQuery = ""
+                        showFavoritesOnly = false
+                        genderFilter = null
+                    }
+                )
+            }
         }
         // Cast shelf - consolidated cast images in one line
         if (filteredCastPeople.isNotEmpty()) {
-            CastShelf(people = filteredCastPeople, onOpenPerson = onOpenPerson)
+            item {
+                CastShelf(people = filteredCastPeople, onOpenPerson = onOpenPerson)
+            }
         }
-        // Weighted so the shelves fill the space under the fixed search + chips header
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            when {
-                displayMovies.isEmpty() && (selectedTag != null || searchQuery.isNotEmpty()) -> {
-                    // Show empty state for filtered results
-                    EmptyVod(
-                        stringResource(R.string.vod_no_movies),
-                        if (selectedTag != null) "No movies with tag: $selectedTag"
-                        else "No movies match your search"
-                    )
-                }
-                !hasContent -> when {
-                    vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_movies))
-                    hasSources -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
-                    else -> EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
-                }
-                else -> {
-                    val posterWidth = if (showCovers) POSTER_WIDTH else POSTER_WIDTH_STILL
-                    val posterAspect = if (showCovers) (2f / 3f) else (16f / 10f)
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = posterWidth),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        // Section 1: Continue Watching (only on home, not when filtering)
-                        if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) item {
-                            ContinueWatchingRow(resume, onResume)
-                        }
-                        // Section 2: All films grid (with correct poster URLs)
-                        if (displayMovies.isNotEmpty()) {
-                            gridItems(displayMovies, key = { it.id }) { movie ->
-                                // Use posterUrl, fallback to backdropUrl
-                                val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
-                                    ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
-                                PosterCard(
-                                    title = movie.displayTitle,
-                                    posterUrl = effectivePoster,
-                                    subtitle = movie.year?.toString(),
-                                    rating = movie.rating,
-                                    onClick = { onOpenMovie(movie) },
-                                    aspectRatio = posterAspect,
-                                )
-                            }
-                        }
+
+        // Continue Watching in its own separate row (only on home, not when filtering)
+        if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) {
+            item {
+                ContinueWatchingRow(resume, onResume)
+            }
+        }
+
+        // Empty/loading states or movie grid
+        when (contentState) {
+            "empty_filtered" -> item {
+                EmptyVod(
+                    stringResource(R.string.vod_no_movies),
+                    if (selectedTag != null) "No movies with tag: $selectedTag"
+                    else "No movies match your search"
+                )
+            }
+            "loading" -> item {
+                LoadingVod(stringResource(R.string.vod_loading_movies))
+            }
+            "empty_provider" -> item {
+                EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
+            }
+            "empty_add" -> item {
+                EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
+            }
+            "content" -> {
+                if (displayMovies.isNotEmpty()) {
+                    gridItems(displayMovies, key = { it.id }) { movie ->
+                        // Use posterUrl, fallback to backdropUrl
+                        val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
+                            ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
+                        PosterCard(
+                            title = movie.displayTitle,
+                            posterUrl = effectivePoster,
+                            subtitle = movie.year?.toString(),
+                            rating = movie.rating,
+                            onClick = { onOpenMovie(movie) },
+                            aspectRatio = posterAspect,
+                        )
                     }
                 }
             }
@@ -482,72 +502,91 @@ fun SeriesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    Column(Modifier.fillMaxSize()) {
-        SearchAffordance(
-            onOpenSearch = onOpenSearch,
-            viewModel = viewModel,
-            onNavigateToMovie = null,
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it },
-            allCastPeople = castPeople,
-            filteredCastPeople = castPeople,
-            displayMovies = emptyList(),
-            onOpenPerson = onOpenPerson,
-            onOpenMovie = null,
-        )
-        NavbarControls(
-            genderFilter = genderFilter,
-            onGenderFilterChange = { genderFilter = it },
-            showCovers = showCovers,
-            onShowCoversChange = { showCovers = it },
-            onRefresh = { viewModel.refreshVod() },
-            showFavoritesOnly = showFavoritesOnly,
-            onShowFavoritesOnlyChange = { showFavoritesOnly = it },
-            genreCounts = emptyMap(),
-            favoriteCount = 0,
-        )
-        if (sources.size > 1) {
-            ProviderChips(
-                sources = sources,
-                selected = selectedSource,
-                onSelectAll = { viewModel.selectVodSource(null) },
-                onSelectSource = { id -> viewModel.selectVodSource(id) },
+    // Single LazyColumn so navbar, tags, cast all scroll up with content (non-sticky)
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 16.dp),
+    ) {
+        // Search bar
+        item {
+            SearchAffordance(
+                onOpenSearch = onOpenSearch,
+                viewModel = viewModel,
+                onNavigateToMovie = null,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                allCastPeople = castPeople,
+                filteredCastPeople = castPeople,
+                displayMovies = emptyList(),
+                onOpenPerson = onOpenPerson,
+                onOpenMovie = null,
             )
         }
-        if (castTags.isNotEmpty()) {
-            TagsShelf(tags = castTags, selectedTag = null, onTagClick = onTagClick, onClearFilter = {})
+        // Navbar controls
+        item {
+            NavbarControls(
+                genderFilter = genderFilter,
+                onGenderFilterChange = { genderFilter = it },
+                showCovers = showCovers,
+                onShowCoversChange = { showCovers = it },
+                onRefresh = { viewModel.refreshVod() },
+                showFavoritesOnly = showFavoritesOnly,
+                onShowFavoritesOnlyChange = { showFavoritesOnly = it },
+                genreCounts = emptyMap(),
+                favoriteCount = 0,
+            )
         }
-        if (castPeople.isNotEmpty()) CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            when {
-                categorySeries.isEmpty() -> when {
-                    vodLoading || isSyncing -> LoadingVod(stringResource(R.string.vod_loading_shows))
-                    hasSources -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
-                    else -> EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
-                }
-                else -> LazyColumn(Modifier.fillMaxSize()) {
-                    if (resume.isNotEmpty()) item { ContinueWatchingRow(resume, onResume) }
-                    if (categorySeries.isNotEmpty()) {
-                        item {
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                gridItems(categorySeries, key = { it.id }) { series ->
-                                    PosterCard(
-                                        title = series.displayTitle,
-                                        posterUrl = series.posterUrl,
-                                        subtitle = series.year?.toString(),
-                                        rating = series.rating,
-                                        onClick = { onOpenSeries(series) },
-                                    )
-                                }
-                            }
-                        }
-                    }
+        // Provider chips
+        if (sources.size > 1) {
+            item {
+                ProviderChips(
+                    sources = sources,
+                    selected = selectedSource,
+                    onSelectAll = { viewModel.selectVodSource(null) },
+                    onSelectSource = { id -> viewModel.selectVodSource(id) },
+                )
+            }
+        }
+        // Tags shelf
+        if (castTags.isNotEmpty()) {
+            item {
+                TagsShelf(tags = castTags, selectedTag = null, onTagClick = onTagClick, onClearFilter = {})
+            }
+        }
+        // Cast shelf
+        if (castPeople.isNotEmpty()) {
+            item {
+                CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
+            }
+        }
+
+        // Continue Watching in its own separate row
+        if (resume.isNotEmpty()) {
+            item {
+                ContinueWatchingRow(resume, onResume)
+            }
+        }
+
+        // Empty/loading states or series grid
+        when {
+            categorySeries.isEmpty() && (vodLoading || isSyncing) -> item {
+                LoadingVod(stringResource(R.string.vod_loading_shows))
+            }
+            categorySeries.isEmpty() && hasSources -> item {
+                EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
+            }
+            categorySeries.isEmpty() -> item {
+                EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
+            }
+            categorySeries.isNotEmpty() -> {
+                gridItems(categorySeries, key = { it.id }) { series ->
+                    PosterCard(
+                        title = series.displayTitle,
+                        posterUrl = series.posterUrl,
+                        subtitle = series.year?.toString(),
+                        rating = series.rating,
+                        onClick = { onOpenSeries(series) },
+                    )
                 }
             }
         }
