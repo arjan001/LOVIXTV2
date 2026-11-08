@@ -395,8 +395,9 @@ fun MoviesScreen(
         else -> "content"
     }
 
-    // Single LazyColumn so navbar, tags, cast all scroll up with content (non-sticky)
-    LazyColumn(
+    // Single LazyVerticalGrid to avoid nesting scrollable containers
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(1),
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 16.dp),
     ) {
@@ -499,28 +500,18 @@ fun MoviesScreen(
             }
             "content" -> {
                 if (displayMovies.isNotEmpty()) {
-                    item {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = posterWidth),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            gridItems(displayMovies, key = { it.id }) { movie ->
-                                // Use posterUrl, fallback to backdropUrl
-                                val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
-                                    ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
-                                PosterCard(
-                                    title = movie.displayTitle,
-                                    posterUrl = effectivePoster,
-                                    subtitle = movie.year?.toString(),
-                                    rating = movie.rating,
-                                    onClick = { onOpenMovie(movie) },
-                                    aspectRatio = posterAspect,
-                                )
-                            }
-                        }
+                    gridItems(displayMovies, key = { it.id }) { movie ->
+                        // Use posterUrl, fallback to backdropUrl
+                        val effectivePoster = movie.posterUrl?.takeIf { it.isNotBlank() }
+                            ?: movie.backdropUrl?.takeIf { it.isNotBlank() }
+                        PosterCard(
+                            title = movie.displayTitle,
+                            posterUrl = effectivePoster,
+                            subtitle = movie.year?.toString(),
+                            rating = movie.rating,
+                            onClick = { onOpenMovie(movie) },
+                            aspectRatio = posterAspect,
+                        )
                     }
                 }
             }
@@ -565,8 +556,9 @@ fun SeriesScreen(
         viewModel.loadHomeFeeds()
     }
 
-    // Single LazyColumn so navbar, tags, cast all scroll up with content (non-sticky)
-    LazyColumn(
+    // Single LazyVerticalGrid to avoid nesting scrollable containers
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(1),
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 16.dp),
     ) {
@@ -642,24 +634,14 @@ fun SeriesScreen(
                 EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
             }
             categorySeries.isNotEmpty() -> {
-                item {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = POSTER_WIDTH),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        gridItems(categorySeries, key = { it.id }) { series ->
-                            PosterCard(
-                                title = series.displayTitle,
-                                posterUrl = series.posterUrl,
-                                subtitle = series.year?.toString(),
-                                rating = series.rating,
-                                onClick = { onOpenSeries(series) },
-                            )
-                        }
-                    }
+                gridItems(categorySeries, key = { it.id }) { series ->
+                    PosterCard(
+                        title = series.displayTitle,
+                        posterUrl = series.posterUrl,
+                        subtitle = series.year?.toString(),
+                        rating = series.rating,
+                        onClick = { onOpenSeries(series) },
+                    )
                 }
             }
         }

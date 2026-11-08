@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.35
+
+- **Crash fix** — fixed `IllegalStateException` caused by nesting `LazyVerticalGrid` inside `LazyColumn`. Both MoviesScreen and SeriesScreen now use a single `LazyVerticalGrid` container to avoid infinite height constraints.
+
 ## 1.0.34
 
 - **Crash fix** — removed VOSK model auto-download from app startup that was causing the app to crash immediately on open. The VOSK subtitle feature remains available but the model is no longer downloaded automatically.
