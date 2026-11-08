@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.39
+
+- **Build fix** — fixed Kotlin compilation error in `VodScreens.kt`: removed forward reference to `allCastTags` in `remember()` dependency list, which was declared later in the function scope.
+
 ## 1.0.38
 
 - **Gender counts fixed** — genre filter now counts movies from genre, cast, and tags fields, ensuring accurate film counts for each gender option.

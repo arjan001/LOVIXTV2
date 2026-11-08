@@ -147,7 +147,7 @@ fun MoviesScreen(
     val favoriteMovieIds by viewModel.favoriteMovies.collectAsState()
     
     // Compute genre counts from all movies — check genre, cast, and tags fields
-    val genreCounts = remember(movies, allCastTags) {
+    val genreCounts = remember(movies) {
         val counts = mutableMapOf<String, Int>()
         for (entry in GENRE_OPTIONS) {
             counts[entry.name] = 0

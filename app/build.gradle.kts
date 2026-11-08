@@ -14,8 +14,8 @@ android {
         applicationId = "app.lovixtv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 138
-        versionName = "1.0.38"
+        versionCode = 139
+        versionName = "1.0.39"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
