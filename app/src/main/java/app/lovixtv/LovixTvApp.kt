@@ -109,19 +109,5 @@ class LovixTvApp : Application(), ImageLoaderFactory {
             // the refresh button. ensureFeeds + auto-enable-by-region + matcher all live here.
             graph.epgRepository.syncAll(System.currentTimeMillis(), force = false)
         }
-
-        // Download VOSK English speech model on first launch so live subtitles are ready
-        // when the user enables them — no waiting during playback.
-        if (!graph.settings.voskModelDownloaded) {
-            appScope.launch {
-                runCatching {
-                    val modelDownloader = app.lovixtv.subtitle.ModelDownloader(
-                        this@LovixTvApp, graph.httpClient
-                    )
-                    modelDownloader.ensureModel(app.lovixtv.subtitle.ModelDownloader.ENGLISH)
-                    graph.settings.voskModelDownloaded = true
-                }
-            }
-        }
     }
 }
