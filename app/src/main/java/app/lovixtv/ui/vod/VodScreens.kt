@@ -403,7 +403,7 @@ fun MoviesScreen(
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         // Search bar
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -436,7 +436,7 @@ fun MoviesScreen(
         }
         // Provider chips only when multiple sources configured
         if (sources.size > 1) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 ProviderChips(
                     sources = sources,
                     selected = selectedSource,
@@ -447,7 +447,7 @@ fun MoviesScreen(
         }
         // Tags shelf with selected tag highlight and clear filter
         if (tagsToShow.isNotEmpty()) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 TagsShelf(
                     tags = tagsToShow,
                     selectedTag = selectedTag,
@@ -472,34 +472,34 @@ fun MoviesScreen(
         }
         // Cast shelf - consolidated cast images in one line
         if (filteredCastPeople.isNotEmpty()) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 CastShelf(people = filteredCastPeople, onOpenPerson = onOpenPerson)
             }
         }
 
         // Continue Watching in its own separate row (only on home, not when filtering)
         if (selectedTag == null && searchQuery.isEmpty() && resume.isNotEmpty()) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 ContinueWatchingRow(resume, onResume)
             }
         }
 
         // Empty/loading states or movie grid
         when (contentState) {
-            "empty_filtered" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            "empty_filtered" -> item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyVod(
                     stringResource(R.string.vod_no_movies),
                     if (selectedTag != null) "No movies with tag: $selectedTag"
                     else "No movies match your search"
                 )
             }
-            "loading" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            "loading" -> item(span = { GridItemSpan(maxLineSpan) }) {
                 LoadingVod(stringResource(R.string.vod_loading_movies))
             }
-            "empty_provider" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            "empty_provider" -> item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_provider))
             }
-            "empty_add" -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            "empty_add" -> item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyVod(stringResource(R.string.vod_no_movies), stringResource(R.string.vod_no_movies_add))
             }
             "content" -> {
@@ -566,7 +566,7 @@ fun SeriesScreen(
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         // Search bar
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -599,7 +599,7 @@ fun SeriesScreen(
         }
         // Provider chips
         if (sources.size > 1) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 ProviderChips(
                     sources = sources,
                     selected = selectedSource,
@@ -610,33 +610,33 @@ fun SeriesScreen(
         }
         // Tags shelf
         if (castTags.isNotEmpty()) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 TagsShelf(tags = castTags, selectedTag = null, onTagClick = onTagClick, onClearFilter = {})
             }
         }
         // Cast shelf
         if (castPeople.isNotEmpty()) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
             }
         }
 
         // Continue Watching in its own separate row
         if (resume.isNotEmpty()) {
-            item(span = { GridItemSpan(maxOrRemaining()) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 ContinueWatchingRow(resume, onResume)
             }
         }
 
         // Empty/loading states or series grid
         when {
-            categorySeries.isEmpty() && (vodLoading || isSyncing) -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            categorySeries.isEmpty() && (vodLoading || isSyncing) -> item(span = { GridItemSpan(maxLineSpan) }) {
                 LoadingVod(stringResource(R.string.vod_loading_shows))
             }
-            categorySeries.isEmpty() && hasSources -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            categorySeries.isEmpty() && hasSources -> item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_provider))
             }
-            categorySeries.isEmpty() -> item(span = { GridItemSpan(maxOrRemaining()) }) {
+            categorySeries.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyVod(stringResource(R.string.vod_no_shows), stringResource(R.string.vod_no_shows_add))
             }
             categorySeries.isNotEmpty() -> {

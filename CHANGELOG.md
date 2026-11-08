@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.37
+
+- **Build fix** — fixed Kotlin compilation errors in `VodScreens.kt`: replaced unsupported `maxOrRemaining()` with `maxLineSpan` for grid item spans, and fixed `LazyVerticalGrid` modifier syntax to use named `modifier` parameter.
+
 ## 1.0.36
 
 - **Grid layout fixed** — movie and series cards now display 5–7 per row on TV screens using adaptive grid columns instead of single-column layout. Navbar, tags, and cast shelf span full width above the grid.
