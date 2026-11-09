@@ -257,22 +257,21 @@ fun MoviesScreen(
     // Always show all tags — tags should persist and be available regardless of selection
     val relatedTags = allCastTags
 
-    // Build cast people list: API people with images are the primary source since castMembers
-    // is @Ignore and not persisted to DB. Fall back to castMembers if available, then cast names.
-    val mergedCastPeople = remember(allCastPeople, movies) {
-        val nameToPerson = mutableMapOf<String, Person>()
+    // Build consolidated cast members list: merge API people images with movie castMembers
+    // and cast names, using the CastMember model (same as movie detail page).
+    val mergedCastMembers = remember(allCastPeople, movies) {
+        val nameToMember = mutableMapOf<String, CastMember>()
 
         // 1. API people are the primary source — they have real TMDB person images from bootstrap
         for (p in allCastPeople) {
             val key = p.name.lowercase()
-            if (nameToPerson[key] == null) {
-                nameToPerson[key] = p
+            if (nameToMember[key] == null) {
+                nameToMember[key] = CastMember(name = p.name, imageUrl = p.imageUrl, gender = p.gender)
             } else {
-                // Merge: keep the one with image
-                val existing = nameToPerson[key]!!
-                if (p.imageUrl != null && p.imageUrl!!.isNotBlank() && 
+                val existing = nameToMember[key]!!
+                if (p.imageUrl != null && p.imageUrl!!.isNotBlank() &&
                     (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
-                    nameToPerson[key] = existing.copy(imageUrl = p.imageUrl, gender = p.gender ?: existing.gender)
+                    nameToMember[key] = existing.copy(imageUrl = p.imageUrl, gender = p.gender ?: existing.gender)
                 }
             }
         }
@@ -283,68 +282,45 @@ fun MoviesScreen(
                 val name = cm.name.trim()
                 if (name.isNotBlank()) {
                     val key = name.lowercase()
-                    val existing = nameToPerson[key]
+                    val existing = nameToMember[key]
                     if (existing != null) {
-                        // Update image if castMember has one and existing doesn't
                         if (cm.imageUrl != null && cm.imageUrl!!.isNotBlank() &&
                             (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
-                            nameToPerson[key] = existing.copy(
-                                imageUrl = cm.imageUrl,
-                                gender = cm.gender ?: existing.gender,
-                                count = existing.count + 1
-                            )
-                        } else {
-                            nameToPerson[key] = existing.copy(count = existing.count + 1)
+                            nameToMember[key] = existing.copy(imageUrl = cm.imageUrl, gender = cm.gender ?: existing.gender)
                         }
                     } else {
-                        nameToPerson[key] = Person(
-                            id = name.hashCode().toString(),
-                            name = name,
-                            count = 1,
-                            imageUrl = cm.imageUrl,
-                            gender = cm.gender
-                        )
+                        nameToMember[key] = CastMember(name = name, imageUrl = cm.imageUrl, gender = cm.gender)
                     }
                 }
             }
         }
 
-        // 3. Count cast names from movie.cast string for any remaining names
+        // 3. Add cast names from movie.cast string for any remaining names (name-only fallback)
         for (movie in movies) {
             movie.cast?.split(",")?.forEach { c ->
                 val name = c.trim()
                 if (name.isNotBlank()) {
                     val key = name.lowercase()
-                    val existing = nameToPerson[key]
-                    if (existing != null) {
-                        nameToPerson[key] = existing.copy(count = existing.count + 1)
-                    } else {
-                        nameToPerson[key] = Person(
-                            id = name.hashCode().toString(),
-                            name = name,
-                            count = 1,
-                            imageUrl = null,
-                            gender = null,
-                        )
+                    if (nameToMember[key] == null) {
+                        nameToMember[key] = CastMember(name = name, imageUrl = null, gender = null)
                     }
                 }
             }
         }
 
-        nameToPerson.values.toList().sortedByDescending { it.count }
+        nameToMember.values.toList()
     }
 
-    // Filter cast people based on search query - only show people with images or known names
-    val filteredCastPeople = remember(searchQuery, mergedCastPeople) {
+    // Filter cast members based on search query
+    val filteredCastMembers = remember(searchQuery, mergedCastMembers) {
         val query = searchQuery.trim().lowercase()
-        val people = if (query.isEmpty()) {
-            // For default view, only show people with real images to avoid clutter
-            mergedCastPeople.filter { it.imageUrl != null && it.imageUrl!!.isNotBlank() }.take(50)
+        if (query.isEmpty()) {
+            // For default view, show all cast members (with or without images), limited to 50
+            mergedCastMembers.take(50)
         } else {
-            // For search, show all matching people (even without images)
-            mergedCastPeople.filter { it.name.contains(query, ignoreCase = true) }
+            // For search, show all matching members
+            mergedCastMembers.filter { it.name.contains(query, ignoreCase = true) }
         }
-        people
     }
 
     // Pull the movie library the first time this tab is opened, not at login; refresh the computed
@@ -386,8 +362,8 @@ fun MoviesScreen(
                 onNavigateToMovie = { movie -> onOpenMovie(movie) },
                 searchQuery = searchQuery,
                 onSearchQueryChange = { searchQuery = it },
-                allCastPeople = allCastPeople,
-                filteredCastPeople = filteredCastPeople,
+                allCastMembers = mergedCastMembers,
+                filteredCastMembers = filteredCastMembers,
                 displayMovies = displayMovies,
                 onOpenPerson = onOpenPerson,
                 onOpenMovie = onOpenMovie,
@@ -444,9 +420,9 @@ fun MoviesScreen(
             }
         }
         // Cast shelf - consolidated cast images in one line
-        if (filteredCastPeople.isNotEmpty()) {
+        if (filteredCastMembers.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                CastShelf(people = filteredCastPeople, onOpenPerson = onOpenPerson)
+                CastShelf(members = filteredCastMembers, onOpenPerson = onOpenPerson)
             }
         }
 
@@ -525,8 +501,25 @@ fun SeriesScreen(
     var showCovers by remember { mutableStateOf(true) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
 
-    val castPeople = people.filterIsInstance<app.lovixtv.data.model.Person>()
     val castTags = tags.filterIsInstance<app.lovixtv.data.model.Tag>()
+
+    // Build cast members from API people, converting Person to CastMember
+    val castMembers = remember(people) {
+        val nameToMember = mutableMapOf<String, CastMember>()
+        for (p in people.filterIsInstance<app.lovixtv.data.model.Person>()) {
+            val key = p.name.lowercase()
+            if (nameToMember[key] == null) {
+                nameToMember[key] = CastMember(name = p.name, imageUrl = p.imageUrl, gender = p.gender)
+            } else {
+                val existing = nameToMember[key]!!
+                if (p.imageUrl != null && p.imageUrl!!.isNotBlank() &&
+                    (existing.imageUrl == null || existing.imageUrl!!.isBlank())) {
+                    nameToMember[key] = existing.copy(imageUrl = p.imageUrl, gender = p.gender ?: existing.gender)
+                }
+            }
+        }
+        nameToMember.values.toList()
+    }
 
     LaunchedEffect(Unit) {
         if (hasSources) viewModel.ensureVodLoaded()
@@ -549,8 +542,8 @@ fun SeriesScreen(
                 onNavigateToMovie = null,
                 searchQuery = searchQuery,
                 onSearchQueryChange = { searchQuery = it },
-                allCastPeople = castPeople,
-                filteredCastPeople = castPeople,
+                allCastMembers = castMembers,
+                filteredCastMembers = castMembers,
                 displayMovies = emptyList(),
                 onOpenPerson = onOpenPerson,
                 onOpenMovie = null,
@@ -588,9 +581,9 @@ fun SeriesScreen(
             }
         }
         // Cast shelf
-        if (castPeople.isNotEmpty()) {
+        if (castMembers.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                CastShelf(people = castPeople, onOpenPerson = onOpenPerson)
+                CastShelf(members = castMembers, onOpenPerson = onOpenPerson)
             }
         }
 
@@ -1022,8 +1015,8 @@ private fun SearchAffordance(
     onNavigateToMovie: ((Movie) -> Unit)? = null,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
-    allCastPeople: List<Person> = emptyList(),
-    filteredCastPeople: List<Person> = emptyList(),
+    allCastMembers: List<CastMember> = emptyList(),
+    filteredCastMembers: List<CastMember> = emptyList(),
     displayMovies: List<Movie> = emptyList(),
     onOpenPerson: (String) -> Unit = {},
     onOpenMovie: ((Movie) -> Unit)? = null,
@@ -1137,16 +1130,16 @@ private fun SearchAffordance(
         }
         
         // Live filtered results section - shows when there's a search query
-        if (searchQuery.isNotEmpty() && (filteredCastPeople.isNotEmpty() || displayMovies.isNotEmpty() || filteredPeople.isNotEmpty() || filteredTags.isNotEmpty())) {
+        if (searchQuery.isNotEmpty() && (filteredCastMembers.isNotEmpty() || displayMovies.isNotEmpty() || filteredPeople.isNotEmpty() || filteredTags.isNotEmpty())) {
             Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 // Live filtered cast circles
-                if (filteredCastPeople.isNotEmpty()) {
+                if (filteredCastMembers.isNotEmpty()) {
                     Text(
-                        "Actors (${filteredCastPeople.size})",
+                        "Actors (${filteredCastMembers.size})",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
@@ -1155,8 +1148,8 @@ private fun SearchAffordance(
                         contentPadding = PaddingValues(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(filteredCastPeople.take(10), key = { it.id }) { person ->
-                            CastCircleSmall(person, onOpenPerson)
+                        items(filteredCastMembers.take(10), key = { it.name }) { member ->
+                            CastCircleSmall(member, onOpenPerson)
                         }
                     }
                 }
@@ -1269,14 +1262,14 @@ private fun SearchAffordance(
 
 /** Small circular cast image for live search results */
 @Composable
-private fun CastCircleSmall(person: Person, onOpenPerson: (String) -> Unit) {
+private fun CastCircleSmall(member: CastMember, onOpenPerson: (String) -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val circleShape = CircleShape
     Column(
         Modifier
             .width(60.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clickable { onOpenPerson(person.name) }
+            .clickable { onOpenPerson(member.name) }
             .padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -1290,16 +1283,17 @@ private fun CastCircleSmall(person: Person, onOpenPerson: (String) -> Unit) {
                     else Modifier,
                 ),
         ) {
-            if (person.imageUrl != null) {
+            if (member.imageUrl != null) {
                 AsyncImage(
-                    model = person.imageUrl,
-                    contentDescription = person.name,
+                    model = member.imageUrl,
+                    contentDescription = member.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().clip(circleShape),
                 )
             } else {
+                // Fallback: show initials if no image
                 Text(
-                    person.name.take(1).uppercase(),
+                    member.name.take(2).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.Center),
@@ -1307,7 +1301,7 @@ private fun CastCircleSmall(person: Person, onOpenPerson: (String) -> Unit) {
             }
         }
         Text(
-            person.name,
+            member.name,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -1600,19 +1594,19 @@ internal fun formatRating(rating: Double): String = String.format(java.util.Loca
 // ---- Phase 2: Cast/Creators Shelf -----------------------------------------------------------
 
 @Composable
-private fun CastShelf(people: List<Person>, onOpenPerson: (String) -> Unit = {}) {
+private fun CastShelf(members: List<CastMember>, onOpenPerson: (String) -> Unit = {}) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(people, key = { it.id }) { person ->
-            CastCard(person, onOpenPerson)
+        items(members, key = { it.name }) { member ->
+            CastCard(member, onOpenPerson)
         }
     }
 }
 
 @Composable
-private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
+private fun CastCard(member: CastMember, onOpenPerson: (String) -> Unit = {}) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "castScale")
     val circleShape = CircleShape
@@ -1622,7 +1616,7 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { focused = it.isFocused }
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = { onOpenPerson(person.name) })
+            .clickable(onClick = { onOpenPerson(member.name) })
             .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -1637,17 +1631,17 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
                     else Modifier,
                 ),
         ) {
-            if (person.imageUrl != null) {
+            if (member.imageUrl != null) {
                 AsyncImage(
-                    model = person.imageUrl,
-                    contentDescription = person.name,
+                    model = member.imageUrl,
+                    contentDescription = member.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().clip(circleShape),
                 )
             } else {
                 // Fallback: show initials if no image
                 Text(
-                    person.name.take(2).uppercase(),
+                    member.name.take(2).uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.Center),
@@ -1656,21 +1650,13 @@ private fun CastCard(person: Person, onOpenPerson: (String) -> Unit = {}) {
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            person.name,
+            member.name,
             style = MaterialTheme.typography.bodySmall,
             color = if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-        if (person.count > 0) {
-            Text(
-                "${person.count} films",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
     }
 }
 
